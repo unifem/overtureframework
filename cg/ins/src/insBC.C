@@ -9,13 +9,27 @@
 #include "DeformingBodyMotion.h"
 #include "BeamModel.h"
 
+// NOTE QC, It seems like CG doesn't assign spacial varying option..
+
+#if 1
+
+#define ADD_SPACIAL_VARYING_COEFF bcParams.setVariableCoefficientOption(BoundaryConditionParameters::spatiallyVaryingCoefficients)
+#define RESET_SPACIAL_VARYING_COEFF bcParams.setVariableCoefficientOption(BoundaryConditionParameters::spatiallyConstantCoefficients)
+
+#else
+
+#define ADD_SPACIAL_VARYING_COEFF
+#define RESET_SPACIAL_VARYING_COEFF
+
+#endif
+
 #define insTractionBC EXTERN_C_NAME(instractionbc)
 
 extern "C"
 {
 void insTractionBC(const int&bcOption,const int&nd,const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,
                                       const int&nd3a,const int&nd3b,const int&nd4a,const int&nd4b,
-                                      const int&ipar,const real&rpar, real&u, const int&mask, const real&x,const real&rx, 
+                                      const int&ipar,const real&rpar, real&u, const int&mask, const real&x,const real&rx,
                                       const real &gridVelocity, const real&gtt,
                                       const int&bc, const int&indexRange, const int&ierr );
 }
@@ -24,23 +38,23 @@ void insTractionBC(const int&bcOption,const int&nd,const int&nd1a,const int&nd1b
 
 // This next include file defines the setTemperatureBC macro
 // ----------------------------------------------------------------------------
-// Macro: Apply BC's on the Temperature 
-// 
-//   There are 3 cases: 
+// Macro: Apply BC's on the Temperature
+//
+//   There are 3 cases:
 //      (1) apply a dirichlet BC                       (OPTION=dirichlet)
 //      (2) extrapolate ghost pts on dirichlet BC's     (OPTION=extrapolateGhost)
 //      (3) apply a mixed BC                           (OPTION=mixed)
-// 
+//
 // Macro args:
-// 
+//
 // tc : component to assign
 // NAME : name of of the calling function (for comments)
-// BCNAME : noSlipWall, inflowWithVelocityGiven etc. 
+// BCNAME : noSlipWall, inflowWithVelocityGiven etc.
 // OPTION: dirichlet, mixed, extrapolateGhost
 // ----------------------------------------------------------------------------
 
 
-//    Mixed-derivative BC for component i: 
+//    Mixed-derivative BC for component i:
 //          mixedCoeff(i)*u(i) + mixedNormalCoeff(i)*u_n(i) = mixedRHS(i)
 #define mixedRHS(component,side,axis,grid)         bcData(component+numberOfComponents*(0),side,axis,grid)
 #define mixedCoeff(component,side,axis,grid)       bcData(component+numberOfComponents*(1),side,axis,grid)
@@ -63,19 +77,19 @@ void insTractionBC(const int&bcOption,const int&nd,const int&nd1a,const int&nd1b
 
 static int numberOfOutflowPointsAtInflowMessages=0;
 
-//\begin{>>MappedGridSolverInclude.tex}{\subsection{applyBoundaryConditionsINS}} 
+//\begin{>>MappedGridSolverInclude.tex}{\subsection{applyBoundaryConditionsINS}}
 int Cgins::
-applyBoundaryConditions(const real & t, realMappedGridFunction & u, 
+applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                   			realMappedGridFunction & gridVelocity,
                   			const int & grid,
                   			const int & option /* =-1 */,
-                  			realMappedGridFunction *puOld /* =NULL */,  
+                  			realMappedGridFunction *puOld /* =NULL */,
                   			realMappedGridFunction *pGridVelocityOld /* =NULL */,
                   			const real & dt /* =-1. */ )
 //=========================================================================================
 // /Description:
 //   Apply boundary conditions for the incompressibleNavierStokes (explicit time stepping).
-// 
+//
 // /t (input):
 // /u (input/output) : apply to this grid function.
 // /gridIsMoving (input) : true if this grid is moving.
@@ -89,23 +103,23 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 // ***Remember to also change the BC routine for implicit time stepping if changes are made here
 // applyBoundaryConditionsForImplicitTimeStepping
 //
-// /NOTE on the bcData array: 
+// /NOTE on the bcData array:
 //  Boundary condition parameter values are stored in the array bcData. Let nc=numberOfComponents,
-//  then the values 
+//  then the values
 //
-//          bcData(i,side,axis,grid)  : i=0,1,...,nc-1 
+//          bcData(i,side,axis,grid)  : i=0,1,...,nc-1
 //
 //  would normally represent the RHS values for dirichlet BC's on component i, such as
-//            u(i1,i2,i3,i) = bcData(i,side,axis,grid) 
-// 
+//            u(i1,i2,i3,i) = bcData(i,side,axis,grid)
+//
 //  For a Mixed-derivative boundary condition, the parameters (a0,a1,a2) in the mixed BC:
 //               a1*u(i1,i2,i3,i) + a2*u(i1,i2,i3,i)_n = a0
 //  are stored in
 //          a_j = bcData(i+nc*(j),side,axis,grid),  j=0,1,2
-// 
+//
 //  Thus bcData(i,side,axis,grid) still holds the RHS value for the mixed-derivative condition
-// 
-//\end{MappedGridSolverInclude.tex}  
+//
+//\end{MappedGridSolverInclude.tex}
 //=========================================================================================
 {
     if( parameters.dbase.get<int>("simulateGridMotion")>0 ) return 0;
@@ -117,26 +131,26 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         printF(">>>>> Cgins::applyBoundaryConditions  t=%9.3e <<<<<<<\n",t);
         fPrintF(parameters.dbase.get<FILE* >("debugFile"),">>>>> Cgins::applyBoundaryConditions t=%9.3e <<<<<<<\n",t);
     }
-    
+
 //   printF(" Cgins::applyBoundaryConditions **START**\n");
 //   cg[0].displayComputedGeometry(); // ************************
 
-    checkArrayIDs(" insBC: start"); 
+    checkArrayIDs(" insBC: start");
 
     MappedGrid & mg = *u.getMappedGrid();
     const int numberOfDimensions = mg.numberOfDimensions();
-    
+
     const bool isRectangular = mg.isRectangular();
     const bool twilightZoneFlow = parameters.dbase.get<bool >("twilightZoneFlow");
-    
-  // *** turn off for stretched c-grid at outflow 
+
+  // *** turn off for stretched c-grid at outflow
     bool applyDivergenceBoundaryCondition=true; // false; // true;
     bool applyDivergenceBoundaryConditionAtOutflow=true;
-    
+
 //   MappedGrid & mg = *u.getMappedGrid();
 //   printf("applyBoundaryConditionsINS: grid=%i variableBoundaryData=%i\n",grid,variableBoundaryData);
 //   display(mg.boundaryCondition(),sPrintF(buff,"grid=%i applyBoundaryConditionsINS: mg.boundaryCondition()",grid));
-      
+
     const bool gridIsMoving = parameters.gridIsMoving(grid);
 
     const int uc = parameters.dbase.get<int >("uc");
@@ -146,7 +160,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     const int & nc = parameters.dbase.get<int >("nc");
     const int orderOfAccuracy=min(4,parameters.dbase.get<int >("orderOfAccuracy"));
   //kkc 100216 !!! turn this assertion off for testing the compact schemes  assert( orderOfAccuracy==2 || orderOfAccuracy==4 );
-    
+
     const RealArray & bcData = parameters.dbase.get<RealArray>("bcData");
 
 //   if( true ) // *************** TEMP *******
@@ -156,14 +170,14 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 //     ::display(bd,sPrintF("insBC: bd: grid=%i side=%i axis=%i",grid,side,axis),
 //               parameters.dbase.get<FILE* >("pDebugFile"),"%5.2f ");
 //   }
-    
+
 
     typedef int BoundaryCondition;
-    
+
     const BoundaryCondition & noSlipWall = Parameters::noSlipWall;
     const BoundaryCondition & slipWall   = Parameters::slipWall;
     const BoundaryCondition & inflowWithVelocityGiven = InsParameters::inflowWithVelocityGiven;
-    const BoundaryCondition & inflowWithPressureAndTangentialVelocityGiven 
+    const BoundaryCondition & inflowWithPressureAndTangentialVelocityGiven
                               = InsParameters::inflowWithPressureAndTangentialVelocityGiven;
     const BoundaryCondition & outflow = InsParameters::outflow;
     const BoundaryCondition & tractionFree = InsParameters::tractionFree;
@@ -172,7 +186,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     const BoundaryCondition & neumannBoundaryCondition = Parameters::neumannBoundaryCondition;
     const BoundaryCondition & axisymmetric = Parameters::axisymmetric;
     const BoundaryCondition & freeSurfaceBoundaryCondition = Parameters::freeSurfaceBoundaryCondition;
-    
+
   // make some shorter names for readability
     BCTypes::BCNames dirichlet             = BCTypes::dirichlet,
                                       neumann               = BCTypes::neumann,
@@ -183,10 +197,10 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                                       generalizedDivergence = BCTypes::generalizedDivergence,
                                       tangentialComponent   = BCTypes::tangentialComponent,
                                       vectorSymmetry        = BCTypes::vectorSymmetry,
-                                      allBoundaries         = BCTypes::allBoundaries; 
+                                      allBoundaries         = BCTypes::allBoundaries;
 
 
-  // Here is the array that defines the domain interfaces, interfaceType(side,axis,grid) 
+  // Here is the array that defines the domain interfaces, interfaceType(side,axis,grid)
     const IntegerArray & interfaceType = parameters.dbase.get<IntegerArray >("interfaceType");
     const BoundaryCondition & interfaceBoundaryCondition = Parameters::interfaceBoundaryCondition;
 
@@ -212,7 +226,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     {
         for( side=0; side<=1; side++ )
         {
-            if( interfaceType(side,axis,grid)!=Parameters::noInterface) 
+            if( interfaceType(side,axis,grid)!=Parameters::noInterface)
                 gridHasInterface=true;  // this grid has an interface
 
             int bc=mg.boundaryCondition(side,axis);
@@ -234,7 +248,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
             case InsParameters::freeSurfaceBoundaryCondition: assignFreeSurfaceBoundaryCondition=true; break;
             case InsParameters::inflowOutflow:           assignInflowOutflow=true; break;
             case InsParameters::penaltyBoundaryCondition: break;
-            default: 
+            default:
                 printF("insBC:ERROR: unknown boundary condition =%i on grid %i, side=%i, axis=%i\n",bc,grid,side,axis);
                 OV_ABORT("error");
             }
@@ -252,8 +266,8 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 
     Range C(0,numberOfComponents-1);  // ***** is this correct ******
     Range V = Range(uc,uc+numberOfDimensions-1);
-    const Range & Rt = parameters.dbase.get<Range >("Rt"); // time dependent parameters (u,v,w,[T]). 
-    
+    const Range & Rt = parameters.dbase.get<Range >("Rt"); // time dependent parameters (u,v,w,[T]).
+
     BoundaryConditionParameters extrapParams;
     BoundaryConditionParameters bcParams;
 
@@ -265,16 +279,16 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     BoundaryData::BoundaryDataArray & pBoundaryData = parameters.getBoundaryData(grid); // this will create the BDA if it is not there
     BoundaryData & bd = parameters.dbase.get<std::vector<BoundaryData> >("boundaryData")[grid];
     assert( bd.boundaryData == pBoundaryData );
-    
+
     const InsParameters::PDEModel & pdeModel = parameters.dbase.get<InsParameters::PDEModel >("pdeModel");
-    
+
     Parameters::TurbulenceModel & turbulenceModel=parameters.dbase.get<Parameters::TurbulenceModel >("turbulenceModel");
 
     const bool assignTemperature = pdeModel==InsParameters::BoussinesqModel ||
                                                                   pdeModel==InsParameters::viscoPlasticModel;
-    
 
-    const Parameters::TimeSteppingMethod & timeSteppingMethod = 
+
+    const Parameters::TimeSteppingMethod & timeSteppingMethod =
                                             parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod");
     const Parameters::ImplicitMethod &method = parameters.dbase.get<Parameters::ImplicitMethod>("implicitMethod");
 
@@ -286,9 +300,9 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     }
 
   // -- evaluate the known solution ----
-    const Parameters::KnownSolutionsEnum & knownSolution = 
+    const Parameters::KnownSolutionsEnum & knownSolution =
                         parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution");
-    
+
     realArray *uKnownPointer=NULL;
   //if( knownSolution!=InsParameters::noKnownSolution )
     if( (knownSolution!=InsParameters::noKnownSolution) && ((assignDirichletBoundaryCondition) || (assignInflowWithPressureAndTangentialVelocityGiven)) )
@@ -309,12 +323,12 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     }
     realArray & uKnown = uKnownPointer!=NULL ? *uKnownPointer : u;
     OV_GET_SERIAL_ARRAY(real,uKnown,uKnownLocal);
-    
+
   // #ifdef USE_PPP
   //   const realSerialArray & uKnownLocal = uKnown.getLocalArray();
   // #else
   //   const realSerialArray & uKnownLocal = uKnown;
-  // #endif  
+  // #endif
 
 
   // =======================================================================================================
@@ -326,7 +340,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                               parameters.dbase.get<bool>("projectNormalComponentOfAddedMassVelocity");
     const int initialConditionsAreBeingProjected = parameters.dbase.get<int>("initialConditionsAreBeingProjected");
     if( useAddedMassAlgorithm && projectAddedMassVelocity && parameters.gridIsMoving(grid)
-              && !initialConditionsAreBeingProjected 
+              && !initialConditionsAreBeingProjected
               && t!=0.  // ****************************************** TEST ********************
         )
     {
@@ -341,8 +355,8 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     // }
 
         projectInterfaceVelocity( t,u,gridVelocity,grid,dt );
-            
-    } // end if useAddedMass 
+
+    } // end if useAddedMass
   // =======================================================================================================
   // =======================================================================================================
 
@@ -351,7 +365,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 
 
     const real & tInitial = parameters.dbase.get<real >("tInitial"); // *wdh* 090819
-    if( timeSteppingMethod==Parameters::steadyStateRungeKutta && 
+    if( timeSteppingMethod==Parameters::steadyStateRungeKutta &&
             t>tInitial )  // apply all boundary conditions at t=0
     {
     // *****************************************************
@@ -360,7 +374,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 
       // we only need to apply a limited number of BC's for the steady state solver since most
       // have already been done.
-            const Parameters::TimeSteppingMethod & timeSteppingMethod = 
+            const Parameters::TimeSteppingMethod & timeSteppingMethod =
                 parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod");
             const Parameters::ImplicitMethod &method = parameters.dbase.get<Parameters::ImplicitMethod>("implicitMethod");
             if( assignSlipWall )
@@ -370,7 +384,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                 if( numberOfDimensions==3 )
               	u.applyBoundaryCondition(V,BCTypes::normalDerivativeOfTangentialComponent1, slipWall,0.,t);
                 if( !isRectangular ) // rectangular case is already done
-                    u.applyBoundaryCondition(V,BCTypes::generalizedDivergence,Parameters::slipWall,0.,t); 	
+                    u.applyBoundaryCondition(V,BCTypes::generalizedDivergence,Parameters::slipWall,0.,t);
             }
             if( assignNoSlipWall )
             {
@@ -379,12 +393,12 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
               	BoundaryConditionParameters bcParams;
               	bcParams.lineToAssign=1;
               	u.applyBoundaryCondition(vc,dirichlet,noSlipWall,0.,t,bcParams);
-                    u.applyBoundaryCondition(V,BCTypes::generalizedDivergence,noSlipWall,0.,t); 	
+                    u.applyBoundaryCondition(V,BCTypes::generalizedDivergence,noSlipWall,0.,t);
                 }
                 else
                 {
                     u.applyBoundaryCondition(V,extrapolate,noSlipWall,0.,t);
-                    u.applyBoundaryCondition(V,BCTypes::generalizedDivergence,noSlipWall,0.,t); 	
+                    u.applyBoundaryCondition(V,BCTypes::generalizedDivergence,noSlipWall,0.,t);
                 }
         // NOTE: dirichlet or neumann BC's for T are already done in the lineSolver
             }
@@ -397,8 +411,8 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
             {
                 u.applyBoundaryCondition(V,neumann,neumannBoundaryCondition,0.,t,bcParams);
             }
-            if( assignOutflow && 
-                    parameters.dbase.get<int>("outflowOption")==0 && 
+            if( assignOutflow &&
+                    parameters.dbase.get<int>("outflowOption")==0 &&
                     parameters.dbase.get<int >("checkForInflowAtOutFlow")==1 )
             {
         // *wdh* 030603 ** add these for Kyle's bug ??
@@ -416,7 +430,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                 	  {
                   	    if( mg.boundaryCondition(side,axis)==outflow )
                   	    {
-                    	      RealDistributedArray & normal  = mg.vertexBoundaryNormal(side,axis);  
+                    	      RealDistributedArray & normal  = mg.vertexBoundaryNormal(side,axis);
                     	      getGhostIndex(mg.gridIndexRange(),side,axis,I1,I2,I3);
                     	      intArray & mask = bcParams.mask();
                     	      mask.redim(I1,I2,I3);   // mask lives on ghost line.
@@ -430,13 +444,13 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                     		if( mg.numberOfDimensions()==2 )
                     		{
                       		  mask = (u(I1,I2,I3,uc)*normal(I1,I2,I3,0)+
-                            			  u(I1,I2,I3,vc)*normal(I1,I2,I3,1)) <0; 
+                            			  u(I1,I2,I3,vc)*normal(I1,I2,I3,1)) <0;
                     		}
                     		else
                     		{
                       		  mask = (u(I1,I2,I3,uc)*normal(I1,I2,I3,0)+
                             			  u(I1,I2,I3,vc)*normal(I1,I2,I3,1)+
-                            			  u(I1,I2,I3,wc)*normal(I1,I2,I3,2)) <0; 
+                            			  u(I1,I2,I3,wc)*normal(I1,I2,I3,2)) <0;
                     		}
                     	      }
                     	      int count=sum(mask);
@@ -496,7 +510,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         // NOTE: dirichlet or neumann BC's for T are already done in the lineSolver
             }
             if( assignNoSlipWall )
-            {  // Extrapolate ghost points on dirichlet BC's for T 
+            {  // Extrapolate ghost points on dirichlet BC's for T
         // NOTE: dirichlet or neumann BC's for T are already done in the lineSolver
                   if( assignTemperature )
                   {
@@ -508,7 +522,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                           {
                               if( interfaceType(side,axis,grid)!=Parameters::noInterface )
                               { // This is an interface between domains
-                 // for now we only know about interfaces at no-slip walls: 
+                 // for now we only know about interfaces at no-slip walls:
                                   assert( mg.boundaryCondition(side,axis)==noSlipWall );
         	 // what about BC's applied at t=0 before the boundary data is set ??
         	 // if( parameters.dbase.get<int >("globalStepNumber") < 2 ) continue; // ********************* TEMP *****
@@ -582,14 +596,14 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                            	     const bool rectangular= mg.isRectangular() && !twilightZoneFlow;
                            	     realArray & x= mg.center();
                 #ifdef USE_PPP
-                           	     realSerialArray xLocal; 
-                           	     if( !rectangular || twilightZoneFlow ) 
+                           	     realSerialArray xLocal;
+                           	     if( !rectangular || twilightZoneFlow )
                              	       getLocalArrayWithGhostBoundaries(x,xLocal);
                 #else
                            	     const realSerialArray & xLocal = x;
                 #endif
                            	     OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
-                           	     realSerialArray ue(Ib1,Ib2,Ib3), uex(Ib1,Ib2,Ib3), uey(Ib1,Ib2,Ib3); 
+                           	     realSerialArray ue(Ib1,Ib2,Ib3), uex(Ib1,Ib2,Ib3), uey(Ib1,Ib2,Ib3);
                            	     e.gd( ue ,xLocal,mg.numberOfDimensions(),rectangular,0,0,0,0,Ib1,Ib2,Ib3,tc,t);
                            	     e.gd( uex,xLocal,mg.numberOfDimensions(),rectangular,0,1,0,0,Ib1,Ib2,Ib3,tc,t);
                            	     e.gd( uey,xLocal,mg.numberOfDimensions(),rectangular,0,0,1,0,Ib1,Ib2,Ib3,tc,t);
@@ -624,9 +638,9 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                        	 printF("++++insBC: noSlipWall: (grid,side,axis)=(%i,%i,%i) : "
                             		"  BC for T: %3.2f*T+%3.2f*T.n=%3.2f,  \n"
                             		"  BC: u: %3.2f*u+%3.2f*u.n=%3.2f,  v: %3.2f*v+%3.2f*v.n=%3.2f \n",
-                            		grid,side,axis, 
-                            		mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid), 
-                            		mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid), 
+                            		grid,side,axis,
+                            		mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid),
+                            		mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid),
                             		mixedCoeff(vc,side,axis,grid), mixedNormalCoeff(vc,side,axis,grid), mixedRHS(vc,side,axis,grid)
                          	   );
         //        if( mixedNormalCoeff(tc,side,axis,grid)!=0. ) // coeff of T.n is non-zero
@@ -636,13 +650,13 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         // 	   printF("++++insBC: noSlipWall:adiabaticWall: (grid,side,axis)=(%i,%i,%i) : "
         // 		  "Mixed BC for T: %3.2f*T+%3.2f*T.n=%3.2f,  \n"
         //                   "  BC: u: %3.2f*u+%3.2f*u.n=%3.2f=%3.2f,  v: %3.2f*v+%3.2f*v.n=%3.2f \n",
-        // 		  grid,side,axis, 
-        //                   mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid), 
-        //                   mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid), 
+        // 		  grid,side,axis,
+        //                   mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid),
+        //                   mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid),
         //                   mixedCoeff(vc,side,axis,grid), mixedNormalCoeff(vc,side,axis,grid), mixedRHS(vc,side,axis,grid)
         // 	     );
         //        }
-                              if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n 
+                              if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n
                               {
         	 // Dirichlet
                        	 u.applyBoundaryCondition(tc,extrapolate,BCTypes::boundary(side,axis),0.,t);
@@ -651,19 +665,21 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                               }
                               else if( bd.hasVariableCoefficientBoundaryCondition(side,axis) )
                               {
-                 // -- Variable Coefficient Temperature (const coeff.) BC --- 
+                 // -- Variable Coefficient Temperature (const coeff.) BC ---
                        	 printF("setTemperatureBC:INFO: grid=%i (side,axis)=(%i,%i) HAS a var coeff. temperature BC!\n",
                             		grid,side,axis);
-                 // BC is : a0(x)*T + an(x)*T.n = g 
+                 // BC is : a0(x)*T + an(x)*T.n = g
                  //  a0 = varCoeff(i1,i2,i3,0)
                  //  an = varCoeff(i1,i2,i3,1)
                        	 RealArray & varCoeff = bd.getVariableCoefficientBoundaryConditionArray(
                                                                                                 BoundaryData::variableCoefficientTemperatureBC,side,axis );
                                   bcParams.setVariableCoefficientsArray(&varCoeff);
+                                  ADD_SPACIAL_VARYING_COEFF;
                        	 u.applyBoundaryCondition(tc,mixed,BCTypes::boundary(side,axis),bcData,pBoundaryData,t,
                                           				  bcParams,grid);
-                                  bcParams.setVariableCoefficientsArray(NULL);  // reset 
-                              } 
+                                  bcParams.setVariableCoefficientsArray(NULL);  // reset
+                                  RESET_SPACIAL_VARYING_COEFF;
+                              }
                               else
                               {
         	 // --- Mixed or Neumann Temperature (const coeff.) BC ---
@@ -680,7 +696,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
             }
             if( assignInflowWithVelocityGiven )
             {
-        // Extrapolate ghost points on dirichlet BC's for T 
+        // Extrapolate ghost points on dirichlet BC's for T
         // NOTE: dirichlet or neumann BC's for T are already done in the lineSolver
                   if( assignTemperature )
                   {
@@ -692,7 +708,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                           {
                               if( interfaceType(side,axis,grid)!=Parameters::noInterface )
                               { // This is an interface between domains
-                 // for now we only know about interfaces at no-slip walls: 
+                 // for now we only know about interfaces at no-slip walls:
                                   assert( mg.boundaryCondition(side,axis)==noSlipWall );
         	 // what about BC's applied at t=0 before the boundary data is set ??
         	 // if( parameters.dbase.get<int >("globalStepNumber") < 2 ) continue; // ********************* TEMP *****
@@ -766,14 +782,14 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                            	     const bool rectangular= mg.isRectangular() && !twilightZoneFlow;
                            	     realArray & x= mg.center();
                 #ifdef USE_PPP
-                           	     realSerialArray xLocal; 
-                           	     if( !rectangular || twilightZoneFlow ) 
+                           	     realSerialArray xLocal;
+                           	     if( !rectangular || twilightZoneFlow )
                              	       getLocalArrayWithGhostBoundaries(x,xLocal);
                 #else
                            	     const realSerialArray & xLocal = x;
                 #endif
                            	     OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
-                           	     realSerialArray ue(Ib1,Ib2,Ib3), uex(Ib1,Ib2,Ib3), uey(Ib1,Ib2,Ib3); 
+                           	     realSerialArray ue(Ib1,Ib2,Ib3), uex(Ib1,Ib2,Ib3), uey(Ib1,Ib2,Ib3);
                            	     e.gd( ue ,xLocal,mg.numberOfDimensions(),rectangular,0,0,0,0,Ib1,Ib2,Ib3,tc,t);
                            	     e.gd( uex,xLocal,mg.numberOfDimensions(),rectangular,0,1,0,0,Ib1,Ib2,Ib3,tc,t);
                            	     e.gd( uey,xLocal,mg.numberOfDimensions(),rectangular,0,0,1,0,Ib1,Ib2,Ib3,tc,t);
@@ -808,9 +824,9 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                        	 printF("++++insBC: inflowWithVelocityGiven: (grid,side,axis)=(%i,%i,%i) : "
                             		"  BC for T: %3.2f*T+%3.2f*T.n=%3.2f,  \n"
                             		"  BC: u: %3.2f*u+%3.2f*u.n=%3.2f,  v: %3.2f*v+%3.2f*v.n=%3.2f \n",
-                            		grid,side,axis, 
-                            		mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid), 
-                            		mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid), 
+                            		grid,side,axis,
+                            		mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid),
+                            		mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid),
                             		mixedCoeff(vc,side,axis,grid), mixedNormalCoeff(vc,side,axis,grid), mixedRHS(vc,side,axis,grid)
                          	   );
         //        if( mixedNormalCoeff(tc,side,axis,grid)!=0. ) // coeff of T.n is non-zero
@@ -820,13 +836,13 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         // 	   printF("++++insBC: inflowWithVelocityGiven:adiabaticWall: (grid,side,axis)=(%i,%i,%i) : "
         // 		  "Mixed BC for T: %3.2f*T+%3.2f*T.n=%3.2f,  \n"
         //                   "  BC: u: %3.2f*u+%3.2f*u.n=%3.2f=%3.2f,  v: %3.2f*v+%3.2f*v.n=%3.2f \n",
-        // 		  grid,side,axis, 
-        //                   mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid), 
-        //                   mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid), 
+        // 		  grid,side,axis,
+        //                   mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid),
+        //                   mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid),
         //                   mixedCoeff(vc,side,axis,grid), mixedNormalCoeff(vc,side,axis,grid), mixedRHS(vc,side,axis,grid)
         // 	     );
         //        }
-                              if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n 
+                              if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n
                               {
         	 // Dirichlet
                        	 u.applyBoundaryCondition(tc,extrapolate,BCTypes::boundary(side,axis),0.,t);
@@ -835,19 +851,21 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                               }
                               else if( bd.hasVariableCoefficientBoundaryCondition(side,axis) )
                               {
-                 // -- Variable Coefficient Temperature (const coeff.) BC --- 
+                 // -- Variable Coefficient Temperature (const coeff.) BC ---
                        	 printF("setTemperatureBC:INFO: grid=%i (side,axis)=(%i,%i) HAS a var coeff. temperature BC!\n",
                             		grid,side,axis);
-                 // BC is : a0(x)*T + an(x)*T.n = g 
+                 // BC is : a0(x)*T + an(x)*T.n = g
                  //  a0 = varCoeff(i1,i2,i3,0)
                  //  an = varCoeff(i1,i2,i3,1)
                        	 RealArray & varCoeff = bd.getVariableCoefficientBoundaryConditionArray(
                                                                                                 BoundaryData::variableCoefficientTemperatureBC,side,axis );
                                   bcParams.setVariableCoefficientsArray(&varCoeff);
+                                  ADD_SPACIAL_VARYING_COEFF;
                        	 u.applyBoundaryCondition(tc,mixed,BCTypes::boundary(side,axis),bcData,pBoundaryData,t,
                                           				  bcParams,grid);
-                                  bcParams.setVariableCoefficientsArray(NULL);  // reset 
-                              } 
+                                  bcParams.setVariableCoefficientsArray(NULL);  // reset
+                                  RESET_SPACIAL_VARYING_COEFF;
+                              }
                               else
                               {
         	 // --- Mixed or Neumann Temperature (const coeff.) BC ---
@@ -866,7 +884,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
             {
                 turbulenceModelBoundaryConditions(t,u,parameters,grid,pBoundaryData);
             }
-            if( parameters.dbase.get<int >("extrapolateInterpolationNeighbours")!=0 ||  // new way 
+            if( parameters.dbase.get<int >("extrapolateInterpolationNeighbours")!=0 ||  // new way
                     parameters.dbase.get<bool >("useFourthOrderArtificialDiffusion") ||     // get rid of these checks
                     pdeModel==InsParameters::viscoPlasticModel  )
             {
@@ -885,7 +903,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     	// printF("insBC: extrapolate 2nd ghost line on all boundaries...\n");
               	u.applyBoundaryCondition(C,extrapolate,allBoundaries,0.,t,extrapParams);
                 }
-        // reset: 
+        // reset:
                 extrapParams.ghostLineToAssign=1;
                 extrapParams.orderOfExtrapolation=orderOfExtrapolationSaved;
             }
@@ -896,9 +914,9 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
             if( orderOfAccuracy==2 ) // ** moved from generic applyBC - 060907
                 u.finishBoundaryConditions();
             parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForBoundaryConditions"))+=getCPU()-time0;
-        
+
         return 0;
-    } 
+    }
 
 
   // ********************************************************************
@@ -909,7 +927,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 
   // ----  the dirichletBoundaryCondition is for testing TZ flow. ----
     bool applyExactSolutionAtGhost=true;  // if true apply exact solution at ghost points, this sometimes gives bad results
-    bool applyDivOnDirichletBoundaryCondition=false;  // try this 
+    bool applyDivOnDirichletBoundaryCondition=false;  // try this
     if( assignDirichletBoundaryCondition )
     {
         if( debug() & 32  )
@@ -918,17 +936,17 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                     parameters.dbase.get<FILE* >("debugFile"),"%5.2f ");
         }
 
-        if( knownSolution!=InsParameters::noKnownSolution ) 
+        if( knownSolution!=InsParameters::noKnownSolution )
         {
             if( false )
                 printF("--INSBC--  *** assign dirichletBoundaryCondition to known at t=%9.3e\n",t);
 
       // apply any known solution at dirichlet BC's   *wdh* 2013/07/25
             bcParams.extraInTangentialDirections=2;
-            bcParams.setBoundaryConditionForcingOption(BoundaryConditionParameters::arrayForcing); 
+            bcParams.setBoundaryConditionForcingOption(BoundaryConditionParameters::arrayForcing);
 
             u.applyBoundaryCondition(Rt,dirichlet,dirichletBoundaryCondition,uKnownLocal,t,bcParams);
-            
+
             bcParams.lineToAssign=0;  // reset
             bcParams.extraInTangentialDirections=0;
             bcParams.setBoundaryConditionForcingOption(BoundaryConditionParameters::unSpecifiedForcing);
@@ -946,7 +964,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         }
 
 
-        checkArrayIDs(" insBC: after dirichlet"); 
+        checkArrayIDs(" insBC: after dirichlet");
 
         if( debug() & 32  )
         {
@@ -966,14 +984,14 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
       	extrapParams.ghostLineToAssign = ghostLineToAssign;
       	extrapParams.lineToAssign = ghostLineToAssign;
 
-      	if( knownSolution!=InsParameters::noKnownSolution ) 
+      	if( knownSolution!=InsParameters::noKnownSolution )
       	{
 	  // apply any known solution at dirichlet BC's   *wdh* 2013/09/28
         	  extrapParams.extraInTangentialDirections=2;
-        	  extrapParams.setBoundaryConditionForcingOption(BoundaryConditionParameters::arrayForcing); 
+        	  extrapParams.setBoundaryConditionForcingOption(BoundaryConditionParameters::arrayForcing);
 
         	  u.applyBoundaryCondition(Rt,dirichlet,dirichletBoundaryCondition,uKnownLocal,t,extrapParams);
-            
+
         	  extrapParams.extraInTangentialDirections=0;
         	  extrapParams.setBoundaryConditionForcingOption(BoundaryConditionParameters::unSpecifiedForcing);
 
@@ -985,7 +1003,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 
                 extrapParams.lineToAssign=0;  // reset
       	extrapParams.ghostLineToAssign = 1;
-      	
+
 	//u.applyBoundaryCondition(Rt,extrapolate,dirichletBoundaryCondition,0.,t,extrapParams);
             }
         }
@@ -1003,14 +1021,14 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
       	u.applyBoundaryCondition(Rt,dirichlet,dirichletBoundaryCondition,0.,t,extrapParams);
             }
         }
-        
+
         if( applyDivOnDirichletBoundaryCondition && orderOfAccuracy==2 ) // *try this *wdh* 2014/06/30
         {
             u.applyBoundaryCondition(V,generalizedDivergence,dirichletBoundaryCondition,0.,t);
         }
-        
-        
-        checkArrayIDs(" insBC: after extrapolate (1)"); 
+
+
+        checkArrayIDs(" insBC: after extrapolate (1)");
         if( debug() & 32  )
         {
             display(u,sPrintF(buff,"insBC: u after extrapolate, assignDirichletBoundaryCondition, grid=%i, t=%e",grid,t),
@@ -1019,7 +1037,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 
 
     }
-    
+
 
   // **************************************************************************
   // ***** STAGE I : Apply dirichlet type boundary conditions *****************
@@ -1043,7 +1061,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                   {
                       if( interfaceType(side,axis,grid)!=Parameters::noInterface )
                       { // This is an interface between domains
-             // for now we only know about interfaces at no-slip walls: 
+             // for now we only know about interfaces at no-slip walls:
                           assert( mg.boundaryCondition(side,axis)==noSlipWall );
     	 // what about BC's applied at t=0 before the boundary data is set ??
     	 // if( parameters.dbase.get<int >("globalStepNumber") < 2 ) continue; // ********************* TEMP *****
@@ -1117,14 +1135,14 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                    	     const bool rectangular= mg.isRectangular() && !twilightZoneFlow;
                    	     realArray & x= mg.center();
         #ifdef USE_PPP
-                   	     realSerialArray xLocal; 
-                   	     if( !rectangular || twilightZoneFlow ) 
+                   	     realSerialArray xLocal;
+                   	     if( !rectangular || twilightZoneFlow )
                      	       getLocalArrayWithGhostBoundaries(x,xLocal);
         #else
                    	     const realSerialArray & xLocal = x;
         #endif
                    	     OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
-                   	     realSerialArray ue(Ib1,Ib2,Ib3), uex(Ib1,Ib2,Ib3), uey(Ib1,Ib2,Ib3); 
+                   	     realSerialArray ue(Ib1,Ib2,Ib3), uex(Ib1,Ib2,Ib3), uey(Ib1,Ib2,Ib3);
                    	     e.gd( ue ,xLocal,mg.numberOfDimensions(),rectangular,0,0,0,0,Ib1,Ib2,Ib3,tc,t);
                    	     e.gd( uex,xLocal,mg.numberOfDimensions(),rectangular,0,1,0,0,Ib1,Ib2,Ib3,tc,t);
                    	     e.gd( uey,xLocal,mg.numberOfDimensions(),rectangular,0,0,1,0,Ib1,Ib2,Ib3,tc,t);
@@ -1159,9 +1177,9 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                	 printF("++++insBC: inflowWithVelocityGiven: (grid,side,axis)=(%i,%i,%i) : "
                     		"  BC for T: %3.2f*T+%3.2f*T.n=%3.2f,  \n"
                     		"  BC: u: %3.2f*u+%3.2f*u.n=%3.2f,  v: %3.2f*v+%3.2f*v.n=%3.2f \n",
-                    		grid,side,axis, 
-                    		mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid), 
-                    		mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid), 
+                    		grid,side,axis,
+                    		mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid),
+                    		mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid),
                     		mixedCoeff(vc,side,axis,grid), mixedNormalCoeff(vc,side,axis,grid), mixedRHS(vc,side,axis,grid)
                  	   );
     //        if( mixedNormalCoeff(tc,side,axis,grid)!=0. ) // coeff of T.n is non-zero
@@ -1171,13 +1189,13 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     // 	   printF("++++insBC: inflowWithVelocityGiven:adiabaticWall: (grid,side,axis)=(%i,%i,%i) : "
     // 		  "Mixed BC for T: %3.2f*T+%3.2f*T.n=%3.2f,  \n"
     //                   "  BC: u: %3.2f*u+%3.2f*u.n=%3.2f=%3.2f,  v: %3.2f*v+%3.2f*v.n=%3.2f \n",
-    // 		  grid,side,axis, 
-    //                   mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid), 
-    //                   mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid), 
+    // 		  grid,side,axis,
+    //                   mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid),
+    //                   mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid),
     //                   mixedCoeff(vc,side,axis,grid), mixedNormalCoeff(vc,side,axis,grid), mixedRHS(vc,side,axis,grid)
     // 	     );
     //        }
-                      if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n 
+                      if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n
                       {
     	 // Dirichlet
                	 u.applyBoundaryCondition(tc,dirichlet,BCTypes::boundary(side,axis),bcData,pBoundaryData,t,
@@ -1185,19 +1203,21 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                       }
                       else if( bd.hasVariableCoefficientBoundaryCondition(side,axis) )
                       {
-             // -- Variable Coefficient Temperature (const coeff.) BC --- 
+             // -- Variable Coefficient Temperature (const coeff.) BC ---
                	 printF("setTemperatureBC:INFO: grid=%i (side,axis)=(%i,%i) HAS a var coeff. temperature BC!\n",
                     		grid,side,axis);
-             // BC is : a0(x)*T + an(x)*T.n = g 
+             // BC is : a0(x)*T + an(x)*T.n = g
              //  a0 = varCoeff(i1,i2,i3,0)
              //  an = varCoeff(i1,i2,i3,1)
                	 RealArray & varCoeff = bd.getVariableCoefficientBoundaryConditionArray(
                                                                                         BoundaryData::variableCoefficientTemperatureBC,side,axis );
                           bcParams.setVariableCoefficientsArray(&varCoeff);
+                          ADD_SPACIAL_VARYING_COEFF;
                	 u.applyBoundaryCondition(tc,mixed,BCTypes::boundary(side,axis),bcData,pBoundaryData,t,
                                   				  bcParams,grid);
-                          bcParams.setVariableCoefficientsArray(NULL);  // reset 
-                      } 
+                          bcParams.setVariableCoefficientsArray(NULL);  // reset
+                          RESET_SPACIAL_VARYING_COEFF;
+                      }
                       else
                       {
     	 // --- Mixed or Neumann Temperature (const coeff.) BC ---
@@ -1217,20 +1237,20 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
             u.applyBoundaryCondition(twoPhaseFlowComponents,dirichlet,inflowWithVelocityGiven,bcData,
                                                               pBoundaryData,t,bcParams,grid);
         }
-        
+
     }
 
     if( assignInflowWithPressureAndTangentialVelocityGiven )
     {
     //  inflowWithPressureAndTangentialVelocityGiven
-    //     give tangential velocity = 0 
+    //     give tangential velocity = 0
     //     extrapolate (u,v,w)
     //     set div(u)=0
         bcParams.extraInTangentialDirections=orderOfAccuracy/2;
         u.applyBoundaryCondition(V,tangentialComponent,inflowWithPressureAndTangentialVelocityGiven,0.,t,bcParams);
         bcParams.extraInTangentialDirections=0;  // reset
-        
-        if( true ) // new: *wdh* 2012/09/14 -- check me 
+
+        if( true ) // new: *wdh* 2012/09/14 -- check me
         {
               if( assignTemperature )
               {
@@ -1242,7 +1262,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                       {
                           if( interfaceType(side,axis,grid)!=Parameters::noInterface )
                           { // This is an interface between domains
-               // for now we only know about interfaces at no-slip walls: 
+               // for now we only know about interfaces at no-slip walls:
                               assert( mg.boundaryCondition(side,axis)==noSlipWall );
       	 // what about BC's applied at t=0 before the boundary data is set ??
       	 // if( parameters.dbase.get<int >("globalStepNumber") < 2 ) continue; // ********************* TEMP *****
@@ -1316,14 +1336,14 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                        	     const bool rectangular= mg.isRectangular() && !twilightZoneFlow;
                        	     realArray & x= mg.center();
             #ifdef USE_PPP
-                       	     realSerialArray xLocal; 
-                       	     if( !rectangular || twilightZoneFlow ) 
+                       	     realSerialArray xLocal;
+                       	     if( !rectangular || twilightZoneFlow )
                          	       getLocalArrayWithGhostBoundaries(x,xLocal);
             #else
                        	     const realSerialArray & xLocal = x;
             #endif
                        	     OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
-                       	     realSerialArray ue(Ib1,Ib2,Ib3), uex(Ib1,Ib2,Ib3), uey(Ib1,Ib2,Ib3); 
+                       	     realSerialArray ue(Ib1,Ib2,Ib3), uex(Ib1,Ib2,Ib3), uey(Ib1,Ib2,Ib3);
                        	     e.gd( ue ,xLocal,mg.numberOfDimensions(),rectangular,0,0,0,0,Ib1,Ib2,Ib3,tc,t);
                        	     e.gd( uex,xLocal,mg.numberOfDimensions(),rectangular,0,1,0,0,Ib1,Ib2,Ib3,tc,t);
                        	     e.gd( uey,xLocal,mg.numberOfDimensions(),rectangular,0,0,1,0,Ib1,Ib2,Ib3,tc,t);
@@ -1358,9 +1378,9 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                    	 printF("++++insBC: inflowWithPressureAndTangentialVelocityGiven: (grid,side,axis)=(%i,%i,%i) : "
                         		"  BC for T: %3.2f*T+%3.2f*T.n=%3.2f,  \n"
                         		"  BC: u: %3.2f*u+%3.2f*u.n=%3.2f,  v: %3.2f*v+%3.2f*v.n=%3.2f \n",
-                        		grid,side,axis, 
-                        		mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid), 
-                        		mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid), 
+                        		grid,side,axis,
+                        		mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid),
+                        		mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid),
                         		mixedCoeff(vc,side,axis,grid), mixedNormalCoeff(vc,side,axis,grid), mixedRHS(vc,side,axis,grid)
                      	   );
       //        if( mixedNormalCoeff(tc,side,axis,grid)!=0. ) // coeff of T.n is non-zero
@@ -1370,13 +1390,13 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
       // 	   printF("++++insBC: inflowWithPressureAndTangentialVelocityGiven:adiabaticWall: (grid,side,axis)=(%i,%i,%i) : "
       // 		  "Mixed BC for T: %3.2f*T+%3.2f*T.n=%3.2f,  \n"
       //                   "  BC: u: %3.2f*u+%3.2f*u.n=%3.2f=%3.2f,  v: %3.2f*v+%3.2f*v.n=%3.2f \n",
-      // 		  grid,side,axis, 
-      //                   mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid), 
-      //                   mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid), 
+      // 		  grid,side,axis,
+      //                   mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid),
+      //                   mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid),
       //                   mixedCoeff(vc,side,axis,grid), mixedNormalCoeff(vc,side,axis,grid), mixedRHS(vc,side,axis,grid)
       // 	     );
       //        }
-                          if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n 
+                          if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n
                           {
       	 // Dirichlet
                    	 u.applyBoundaryCondition(tc,dirichlet,BCTypes::boundary(side,axis),bcData,pBoundaryData,t,
@@ -1384,19 +1404,21 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                           }
                           else if( bd.hasVariableCoefficientBoundaryCondition(side,axis) )
                           {
-               // -- Variable Coefficient Temperature (const coeff.) BC --- 
+               // -- Variable Coefficient Temperature (const coeff.) BC ---
                    	 printF("setTemperatureBC:INFO: grid=%i (side,axis)=(%i,%i) HAS a var coeff. temperature BC!\n",
                         		grid,side,axis);
-               // BC is : a0(x)*T + an(x)*T.n = g 
+               // BC is : a0(x)*T + an(x)*T.n = g
                //  a0 = varCoeff(i1,i2,i3,0)
                //  an = varCoeff(i1,i2,i3,1)
                    	 RealArray & varCoeff = bd.getVariableCoefficientBoundaryConditionArray(
                                                                                             BoundaryData::variableCoefficientTemperatureBC,side,axis );
                               bcParams.setVariableCoefficientsArray(&varCoeff);
+                              ADD_SPACIAL_VARYING_COEFF;
                    	 u.applyBoundaryCondition(tc,mixed,BCTypes::boundary(side,axis),bcData,pBoundaryData,t,
                                       				  bcParams,grid);
-                              bcParams.setVariableCoefficientsArray(NULL);  // reset 
-                          } 
+                              bcParams.setVariableCoefficientsArray(NULL);  // reset
+                              RESET_SPACIAL_VARYING_COEFF;
+                          }
                           else
                           {
       	 // --- Mixed or Neumann Temperature (const coeff.) BC ---
@@ -1420,7 +1442,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         {
             u.applyBoundaryCondition(twoPhaseFlowComponents,dirichlet,inflowWithPressureAndTangentialVelocityGiven,bcData,
                                                               pBoundaryData,t,bcParams,grid);
-        }    
+        }
 
     }
 
@@ -1430,7 +1452,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     // applyInflowOutflowBC( );
         OV_ABORT("insBC: inflowOutflow BC: FINISH ME");
     }
-    
+
 
 
     if( assignNeumannBoundaryCondition ) // kkc added 100812
@@ -1466,12 +1488,12 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 
 
   // old:  const  int nc=parameters.dbase.get<int >("numberOfComponents");
-    
+
     if( assignNoSlipWall )
     {
         if( gridIsMoving )
         {
-            
+
             u.applyBoundaryCondition(V,dirichlet,noSlipWall,gridVelocity,t,bcParams);
 
             if( false )
@@ -1479,16 +1501,16 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
       	display(u,"--insBC-- u after moving noSlipWall","%6.3f ");
       	display(gridVelocity,"--insBC-- gridVelocity after moving noSlipWall","%6.3f ");
             }
-            
+
         }
-        
+
         else
         {
       // old: u.applyBoundaryCondition(V,dirichlet,noSlipWall,bcData,t,bcParams,grid);
       // We now allow for variable inflow on a wall: *wdh* 110829
             u.applyBoundaryCondition(V,dirichlet,noSlipWall,bcData,pBoundaryData,t,bcParams,grid);
         }
-        
+
     // assign dirichlet BC's on T here -- other BC's are done later
           if( assignTemperature )
           {
@@ -1500,7 +1522,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                   {
                       if( interfaceType(side,axis,grid)!=Parameters::noInterface )
                       { // This is an interface between domains
-             // for now we only know about interfaces at no-slip walls: 
+             // for now we only know about interfaces at no-slip walls:
                           assert( mg.boundaryCondition(side,axis)==noSlipWall );
     	 // what about BC's applied at t=0 before the boundary data is set ??
     	 // if( parameters.dbase.get<int >("globalStepNumber") < 2 ) continue; // ********************* TEMP *****
@@ -1574,14 +1596,14 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                    	     const bool rectangular= mg.isRectangular() && !twilightZoneFlow;
                    	     realArray & x= mg.center();
         #ifdef USE_PPP
-                   	     realSerialArray xLocal; 
-                   	     if( !rectangular || twilightZoneFlow ) 
+                   	     realSerialArray xLocal;
+                   	     if( !rectangular || twilightZoneFlow )
                      	       getLocalArrayWithGhostBoundaries(x,xLocal);
         #else
                    	     const realSerialArray & xLocal = x;
         #endif
                    	     OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
-                   	     realSerialArray ue(Ib1,Ib2,Ib3), uex(Ib1,Ib2,Ib3), uey(Ib1,Ib2,Ib3); 
+                   	     realSerialArray ue(Ib1,Ib2,Ib3), uex(Ib1,Ib2,Ib3), uey(Ib1,Ib2,Ib3);
                    	     e.gd( ue ,xLocal,mg.numberOfDimensions(),rectangular,0,0,0,0,Ib1,Ib2,Ib3,tc,t);
                    	     e.gd( uex,xLocal,mg.numberOfDimensions(),rectangular,0,1,0,0,Ib1,Ib2,Ib3,tc,t);
                    	     e.gd( uey,xLocal,mg.numberOfDimensions(),rectangular,0,0,1,0,Ib1,Ib2,Ib3,tc,t);
@@ -1616,9 +1638,9 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                	 printF("++++insBC: noSlipWall: (grid,side,axis)=(%i,%i,%i) : "
                     		"  BC for T: %3.2f*T+%3.2f*T.n=%3.2f,  \n"
                     		"  BC: u: %3.2f*u+%3.2f*u.n=%3.2f,  v: %3.2f*v+%3.2f*v.n=%3.2f \n",
-                    		grid,side,axis, 
-                    		mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid), 
-                    		mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid), 
+                    		grid,side,axis,
+                    		mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid),
+                    		mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid),
                     		mixedCoeff(vc,side,axis,grid), mixedNormalCoeff(vc,side,axis,grid), mixedRHS(vc,side,axis,grid)
                  	   );
     //        if( mixedNormalCoeff(tc,side,axis,grid)!=0. ) // coeff of T.n is non-zero
@@ -1628,13 +1650,13 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     // 	   printF("++++insBC: noSlipWall:adiabaticWall: (grid,side,axis)=(%i,%i,%i) : "
     // 		  "Mixed BC for T: %3.2f*T+%3.2f*T.n=%3.2f,  \n"
     //                   "  BC: u: %3.2f*u+%3.2f*u.n=%3.2f=%3.2f,  v: %3.2f*v+%3.2f*v.n=%3.2f \n",
-    // 		  grid,side,axis, 
-    //                   mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid), 
-    //                   mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid), 
+    // 		  grid,side,axis,
+    //                   mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid),
+    //                   mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid),
     //                   mixedCoeff(vc,side,axis,grid), mixedNormalCoeff(vc,side,axis,grid), mixedRHS(vc,side,axis,grid)
     // 	     );
     //        }
-                      if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n 
+                      if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n
                       {
     	 // Dirichlet
                	 u.applyBoundaryCondition(tc,dirichlet,BCTypes::boundary(side,axis),bcData,pBoundaryData,t,
@@ -1642,19 +1664,21 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                       }
                       else if( bd.hasVariableCoefficientBoundaryCondition(side,axis) )
                       {
-             // -- Variable Coefficient Temperature (const coeff.) BC --- 
+             // -- Variable Coefficient Temperature (const coeff.) BC ---
                	 printF("setTemperatureBC:INFO: grid=%i (side,axis)=(%i,%i) HAS a var coeff. temperature BC!\n",
                     		grid,side,axis);
-             // BC is : a0(x)*T + an(x)*T.n = g 
+             // BC is : a0(x)*T + an(x)*T.n = g
              //  a0 = varCoeff(i1,i2,i3,0)
              //  an = varCoeff(i1,i2,i3,1)
                	 RealArray & varCoeff = bd.getVariableCoefficientBoundaryConditionArray(
                                                                                         BoundaryData::variableCoefficientTemperatureBC,side,axis );
                           bcParams.setVariableCoefficientsArray(&varCoeff);
+                          ADD_SPACIAL_VARYING_COEFF;
                	 u.applyBoundaryCondition(tc,mixed,BCTypes::boundary(side,axis),bcData,pBoundaryData,t,
                                   				  bcParams,grid);
-                          bcParams.setVariableCoefficientsArray(NULL);  // reset 
-                      } 
+                          bcParams.setVariableCoefficientsArray(NULL);  // reset
+                          RESET_SPACIAL_VARYING_COEFF;
+                      }
                       else
                       {
     	 // --- Mixed or Neumann Temperature (const coeff.) BC ---
@@ -1671,9 +1695,9 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 
     // display(u,"u after dirichlet noSlipWall",parameters.dbase.get<FILE* >("debugFile"));
     }
-    
+
     bcParams.extraInTangentialDirections=0; // reset
-    
+
 
 
     if( assignFreeSurfaceBoundaryCondition )
@@ -1689,7 +1713,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                   {
                       if( interfaceType(side,axis,grid)!=Parameters::noInterface )
                       { // This is an interface between domains
-             // for now we only know about interfaces at no-slip walls: 
+             // for now we only know about interfaces at no-slip walls:
                           assert( mg.boundaryCondition(side,axis)==noSlipWall );
     	 // what about BC's applied at t=0 before the boundary data is set ??
     	 // if( parameters.dbase.get<int >("globalStepNumber") < 2 ) continue; // ********************* TEMP *****
@@ -1763,14 +1787,14 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                    	     const bool rectangular= mg.isRectangular() && !twilightZoneFlow;
                    	     realArray & x= mg.center();
         #ifdef USE_PPP
-                   	     realSerialArray xLocal; 
-                   	     if( !rectangular || twilightZoneFlow ) 
+                   	     realSerialArray xLocal;
+                   	     if( !rectangular || twilightZoneFlow )
                      	       getLocalArrayWithGhostBoundaries(x,xLocal);
         #else
                    	     const realSerialArray & xLocal = x;
         #endif
                    	     OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
-                   	     realSerialArray ue(Ib1,Ib2,Ib3), uex(Ib1,Ib2,Ib3), uey(Ib1,Ib2,Ib3); 
+                   	     realSerialArray ue(Ib1,Ib2,Ib3), uex(Ib1,Ib2,Ib3), uey(Ib1,Ib2,Ib3);
                    	     e.gd( ue ,xLocal,mg.numberOfDimensions(),rectangular,0,0,0,0,Ib1,Ib2,Ib3,tc,t);
                    	     e.gd( uex,xLocal,mg.numberOfDimensions(),rectangular,0,1,0,0,Ib1,Ib2,Ib3,tc,t);
                    	     e.gd( uey,xLocal,mg.numberOfDimensions(),rectangular,0,0,1,0,Ib1,Ib2,Ib3,tc,t);
@@ -1805,9 +1829,9 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                	 printF("++++insBC: freeSurfaceBoundaryCondition: (grid,side,axis)=(%i,%i,%i) : "
                     		"  BC for T: %3.2f*T+%3.2f*T.n=%3.2f,  \n"
                     		"  BC: u: %3.2f*u+%3.2f*u.n=%3.2f,  v: %3.2f*v+%3.2f*v.n=%3.2f \n",
-                    		grid,side,axis, 
-                    		mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid), 
-                    		mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid), 
+                    		grid,side,axis,
+                    		mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid),
+                    		mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid),
                     		mixedCoeff(vc,side,axis,grid), mixedNormalCoeff(vc,side,axis,grid), mixedRHS(vc,side,axis,grid)
                  	   );
     //        if( mixedNormalCoeff(tc,side,axis,grid)!=0. ) // coeff of T.n is non-zero
@@ -1817,13 +1841,13 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     // 	   printF("++++insBC: freeSurfaceBoundaryCondition:adiabaticWall: (grid,side,axis)=(%i,%i,%i) : "
     // 		  "Mixed BC for T: %3.2f*T+%3.2f*T.n=%3.2f,  \n"
     //                   "  BC: u: %3.2f*u+%3.2f*u.n=%3.2f=%3.2f,  v: %3.2f*v+%3.2f*v.n=%3.2f \n",
-    // 		  grid,side,axis, 
-    //                   mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid), 
-    //                   mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid), 
+    // 		  grid,side,axis,
+    //                   mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid),
+    //                   mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid),
     //                   mixedCoeff(vc,side,axis,grid), mixedNormalCoeff(vc,side,axis,grid), mixedRHS(vc,side,axis,grid)
     // 	     );
     //        }
-                      if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n 
+                      if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n
                       {
     	 // Dirichlet
                	 u.applyBoundaryCondition(tc,dirichlet,BCTypes::boundary(side,axis),bcData,pBoundaryData,t,
@@ -1831,19 +1855,21 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                       }
                       else if( bd.hasVariableCoefficientBoundaryCondition(side,axis) )
                       {
-             // -- Variable Coefficient Temperature (const coeff.) BC --- 
+             // -- Variable Coefficient Temperature (const coeff.) BC ---
                	 printF("setTemperatureBC:INFO: grid=%i (side,axis)=(%i,%i) HAS a var coeff. temperature BC!\n",
                     		grid,side,axis);
-             // BC is : a0(x)*T + an(x)*T.n = g 
+             // BC is : a0(x)*T + an(x)*T.n = g
              //  a0 = varCoeff(i1,i2,i3,0)
              //  an = varCoeff(i1,i2,i3,1)
                	 RealArray & varCoeff = bd.getVariableCoefficientBoundaryConditionArray(
                                                                                         BoundaryData::variableCoefficientTemperatureBC,side,axis );
                           bcParams.setVariableCoefficientsArray(&varCoeff);
+                          ADD_SPACIAL_VARYING_COEFF;
                	 u.applyBoundaryCondition(tc,mixed,BCTypes::boundary(side,axis),bcData,pBoundaryData,t,
                                   				  bcParams,grid);
-                          bcParams.setVariableCoefficientsArray(NULL);  // reset 
-                      } 
+                          bcParams.setVariableCoefficientsArray(NULL);  // reset
+                          RESET_SPACIAL_VARYING_COEFF;
+                      }
                       else
                       {
     	 // --- Mixed or Neumann Temperature (const coeff.) BC ---
@@ -1883,7 +1909,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
             {
                 u.applyBoundaryCondition(V,neumann,outflow,0.,t);
             }
-            
+
             if( assignTemperature )
             {
       	const int orderOfExtrapolation=extrapParams.orderOfExtrapolation;
@@ -1892,7 +1918,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
       	u.applyBoundaryCondition(tc,extrapolate,outflow,0.,t,extrapParams);
       	extrapParams.orderOfExtrapolation=orderOfExtrapolation;  // reset
             }
-            
+
         }
         else
         {
@@ -1904,20 +1930,20 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
             extrapParams.orderOfExtrapolation=orderOfExtrapolation;  // reset
         }
     }
-    
+
     bool useNewTractionBC=true; // still testing the new traction BC
-    
+
     if( useNewTractionBC )
     {
     // -- Assign a free surface or traction free BC -----
     // *new way*
         if( assignFreeSurfaceBoundaryCondition || assignTractionFree )
         {
-      // test: u.applyBoundaryCondition(Rt,neumann,tractionFree,0.,t);  
+      // test: u.applyBoundaryCondition(Rt,neumann,tractionFree,0.,t);
             printF("--INSBC-- Assign new free surface BC t=%9.3e\n",t);
 
             {
-       // twilight always needs the vertex: 
+       // twilight always needs the vertex:
                 bool vertexNeeded = !isRectangular || parameters.dbase.get<bool >("twilightZoneFlow");
                 OV_GET_SERIAL_ARRAY(real,u,uLocal);
                 real *pu = uLocal.getDataPointer();
@@ -1958,7 +1984,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                 real *pgtt = gtt.getDataPointer();               // pointer to the grid acceleration, g''
         // check -- is it ok to use gid instead of ir?
                 IntegerArray indexRangeLocal(2,3), dimLocal(2,3), bcLocal(2,3);
-                ParallelGridUtility::getLocalIndexBoundsAndBoundaryConditions( u,indexRangeLocal,dimLocal,bcLocal ); 
+                ParallelGridUtility::getLocalIndexBoundsAndBoundaryConditions( u,indexRangeLocal,dimLocal,bcLocal );
         // *wdh* 110311 - Add Boussinesq terms and boundary conditions for T
                 const InsParameters::PDEModel & pdeModel = parameters.dbase.get<InsParameters::PDEModel >("pdeModel");
                 const bool assignTemperature = pdeModel==InsParameters::BoussinesqModel ||
@@ -1971,7 +1997,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                 real ad41 = parameters.dbase.get<real >("ad41");
                 real ad42 = parameters.dbase.get<real >("ad42");
                 const int np = max(Communication_Manager::Number_Of_Processors,1);
-                int useWhereMask=false; // **NOTE** for  moving grids we may need to evaluate at more points than just mask >0 
+                int useWhereMask=false; // **NOTE** for  moving grids we may need to evaluate at more points than just mask >0
                 real ajs=1.;  // is this used?
         //   real ajs=getSignForJacobian(mg);
                 real thermalExpansivity=1.;
@@ -2049,25 +2075,25 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         {
       // Free surface BC:
       //    p = given
-      //    n. sigma . tau_m = 0 , 
-      //    div( v ) = 0 
+      //    n. sigma . tau_m = 0 ,
+      //    div( v ) = 0
 
       // ::display(u,"insBC: solution BEFORE freeSurface",parameters.dbase.get<FILE* >("debugFile"),"%5.2f ");
       // For now just apply a neumann BC  ***FIX ME**
-            u.applyBoundaryCondition(V,neumann,freeSurfaceBoundaryCondition,0.,t);  
-      //  u.applyBoundaryCondition(uc,neumann,freeSurfaceBoundaryCondition,0.,t);  
-      //  u.applyBoundaryCondition(vc,neumann,freeSurfaceBoundaryCondition,0.,t);  
+            u.applyBoundaryCondition(V,neumann,freeSurfaceBoundaryCondition,0.,t);
+      //  u.applyBoundaryCondition(uc,neumann,freeSurfaceBoundaryCondition,0.,t);
+      //  u.applyBoundaryCondition(vc,neumann,freeSurfaceBoundaryCondition,0.,t);
       // ::display(u,"insBC: solution AFTER freeSurface",parameters.dbase.get<FILE* >("debugFile"),"%5.2f ");
         }
-    
+
         if( assignTractionFree )
         {
       // tractionFree:
       //   ** for now just apply a neumann BC **
-            u.applyBoundaryCondition(Rt,neumann,tractionFree,0.,t);  
-      // u.applyBoundaryCondition(V,extrapolate,tractionFree,0.,t);  
+            u.applyBoundaryCondition(Rt,neumann,tractionFree,0.,t);
+      // u.applyBoundaryCondition(V,extrapolate,tractionFree,0.,t);
         }
-    } // end old way 
+    } // end old way
 
     if( assignFreeSurfaceBoundaryCondition )
     {
@@ -2082,7 +2108,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                   {
                       if( interfaceType(side,axis,grid)!=Parameters::noInterface )
                       { // This is an interface between domains
-             // for now we only know about interfaces at no-slip walls: 
+             // for now we only know about interfaces at no-slip walls:
                           assert( mg.boundaryCondition(side,axis)==noSlipWall );
     	 // what about BC's applied at t=0 before the boundary data is set ??
     	 // if( parameters.dbase.get<int >("globalStepNumber") < 2 ) continue; // ********************* TEMP *****
@@ -2156,14 +2182,14 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                    	     const bool rectangular= mg.isRectangular() && !twilightZoneFlow;
                    	     realArray & x= mg.center();
         #ifdef USE_PPP
-                   	     realSerialArray xLocal; 
-                   	     if( !rectangular || twilightZoneFlow ) 
+                   	     realSerialArray xLocal;
+                   	     if( !rectangular || twilightZoneFlow )
                      	       getLocalArrayWithGhostBoundaries(x,xLocal);
         #else
                    	     const realSerialArray & xLocal = x;
         #endif
                    	     OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
-                   	     realSerialArray ue(Ib1,Ib2,Ib3), uex(Ib1,Ib2,Ib3), uey(Ib1,Ib2,Ib3); 
+                   	     realSerialArray ue(Ib1,Ib2,Ib3), uex(Ib1,Ib2,Ib3), uey(Ib1,Ib2,Ib3);
                    	     e.gd( ue ,xLocal,mg.numberOfDimensions(),rectangular,0,0,0,0,Ib1,Ib2,Ib3,tc,t);
                    	     e.gd( uex,xLocal,mg.numberOfDimensions(),rectangular,0,1,0,0,Ib1,Ib2,Ib3,tc,t);
                    	     e.gd( uey,xLocal,mg.numberOfDimensions(),rectangular,0,0,1,0,Ib1,Ib2,Ib3,tc,t);
@@ -2198,9 +2224,9 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                	 printF("++++insBC: freeSurfaceBoundaryCondition: (grid,side,axis)=(%i,%i,%i) : "
                     		"  BC for T: %3.2f*T+%3.2f*T.n=%3.2f,  \n"
                     		"  BC: u: %3.2f*u+%3.2f*u.n=%3.2f,  v: %3.2f*v+%3.2f*v.n=%3.2f \n",
-                    		grid,side,axis, 
-                    		mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid), 
-                    		mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid), 
+                    		grid,side,axis,
+                    		mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid),
+                    		mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid),
                     		mixedCoeff(vc,side,axis,grid), mixedNormalCoeff(vc,side,axis,grid), mixedRHS(vc,side,axis,grid)
                  	   );
     //        if( mixedNormalCoeff(tc,side,axis,grid)!=0. ) // coeff of T.n is non-zero
@@ -2210,31 +2236,33 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     // 	   printF("++++insBC: freeSurfaceBoundaryCondition:adiabaticWall: (grid,side,axis)=(%i,%i,%i) : "
     // 		  "Mixed BC for T: %3.2f*T+%3.2f*T.n=%3.2f,  \n"
     //                   "  BC: u: %3.2f*u+%3.2f*u.n=%3.2f=%3.2f,  v: %3.2f*v+%3.2f*v.n=%3.2f \n",
-    // 		  grid,side,axis, 
-    //                   mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid), 
-    //                   mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid), 
+    // 		  grid,side,axis,
+    //                   mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid),
+    //                   mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid),
     //                   mixedCoeff(vc,side,axis,grid), mixedNormalCoeff(vc,side,axis,grid), mixedRHS(vc,side,axis,grid)
     // 	     );
     //        }
-                      if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n 
+                      if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n
                       {
     	 // Dirichlet
                       }
                       else if( bd.hasVariableCoefficientBoundaryCondition(side,axis) )
                       {
-             // -- Variable Coefficient Temperature (const coeff.) BC --- 
+             // -- Variable Coefficient Temperature (const coeff.) BC ---
                	 printF("setTemperatureBC:INFO: grid=%i (side,axis)=(%i,%i) HAS a var coeff. temperature BC!\n",
                     		grid,side,axis);
-             // BC is : a0(x)*T + an(x)*T.n = g 
+             // BC is : a0(x)*T + an(x)*T.n = g
              //  a0 = varCoeff(i1,i2,i3,0)
              //  an = varCoeff(i1,i2,i3,1)
                	 RealArray & varCoeff = bd.getVariableCoefficientBoundaryConditionArray(
                                                                                         BoundaryData::variableCoefficientTemperatureBC,side,axis );
                           bcParams.setVariableCoefficientsArray(&varCoeff);
+                          ADD_SPACIAL_VARYING_COEFF;
                	 u.applyBoundaryCondition(tc,mixed,BCTypes::boundary(side,axis),bcData,pBoundaryData,t,
                                   				  bcParams,grid);
-                          bcParams.setVariableCoefficientsArray(NULL);  // reset 
-                      } 
+                          bcParams.setVariableCoefficientsArray(NULL);  // reset
+                          RESET_SPACIAL_VARYING_COEFF;
+                      }
                       else
                       {
     	 // --- Mixed or Neumann Temperature (const coeff.) BC ---
@@ -2285,7 +2313,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                  	   }
                  	   bcParams.a(0)=a0;
                  	   bcParams.a(1)=a1;
-                 	   bcParams.a(2)=mixedRHS(tc,side,axis,grid); 
+                 	   bcParams.a(2)=mixedRHS(tc,side,axis,grid);
                  	   if( false )
                  	   {  // **** TEMP FIX ****
                    	     u.applyBoundaryCondition(tc,extrapolate,BCTypes::boundary(side,axis),0.,t);
@@ -2316,25 +2344,25 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
        // u.updateGhostBoundaries(); // this is done in finish boundary conditions now
           } // end if assignTemperature
     }
-    
-    
+
+
   // **check for local inflow at an outflow boundary**
   // where( inflow ) give u.n=0
     Index I1,I2,I3;
-        
-    if( !twilightZoneFlow &&  
-            assignOutflow && orderOfAccuracy==2 && 
-            parameters.dbase.get<int>("outflowOption")==0 && 
+
+    if( !twilightZoneFlow &&
+            assignOutflow && orderOfAccuracy==2 &&
+            parameters.dbase.get<int>("outflowOption")==0 &&
             parameters.dbase.get<int >("checkForInflowAtOutFlow")==1 )
     {
-    // check for inflow at the outflow boundary    
+    // check for inflow at the outflow boundary
         for( axis=0; axis<mg.numberOfDimensions(); axis++ )
         {
             for( side=Start; side<=End; side++ )
             {
       	if( mg.boundaryCondition(side,axis)==outflow )
       	{
-        	  RealDistributedArray & normal  = mg.vertexBoundaryNormal(side,axis);  
+        	  RealDistributedArray & normal  = mg.vertexBoundaryNormal(side,axis);
 
         	  getGhostIndex(mg.gridIndexRange(),side,axis,I1,I2,I3);
         	  intArray & mask = bcParams.mask();
@@ -2349,16 +2377,16 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
           	    if( mg.numberOfDimensions()==2 )
           	    {
             	      mask = (u(I1,I2,I3,uc)*normal(I1,I2,I3,0)+
-                  		      u(I1,I2,I3,vc)*normal(I1,I2,I3,1)) <0; 
+                  		      u(I1,I2,I3,vc)*normal(I1,I2,I3,1)) <0;
           	    }
           	    else
           	    {
             	      mask = (u(I1,I2,I3,uc)*normal(I1,I2,I3,0)+
                   		      u(I1,I2,I3,vc)*normal(I1,I2,I3,1)+
-                  		      u(I1,I2,I3,wc)*normal(I1,I2,I3,2)) <0; 
+                  		      u(I1,I2,I3,wc)*normal(I1,I2,I3,2)) <0;
           	    }
         	  }
-      	
+
         	  int count=sum(mask);
 	  // printF("---> insBC: number of outflow points that are inflow = %i\n",count);
         	  if( count>0 )
@@ -2372,10 +2400,10 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
             		printF("--INSBC--WARNING: too many 'number of outflow points that are inflow' messages."
                                               " I will not print anymore.\n");
           	    }
-          	    
+
           	    bcParams.setUseMask(TRUE);
 
-                        if( false )  // add this as an option 
+                        if( false )  // add this as an option
           	    {
               // *wdh* 2014/06/08 -- try a mixed BC
             	      bcParams.a.redim(3);
@@ -2391,7 +2419,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
           	    {
             	      u.applyBoundaryCondition(V,neumann,BCTypes::boundary(side,axis),0.,t,bcParams);
           	    }
-          	    
+
 
           	    bcParams.setUseMask(FALSE);
         	  }
@@ -2399,7 +2427,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
             }
         }
     }
-    
+
     if( assignSlipWall && orderOfAccuracy==2 )
     {
     // finish slipWall
@@ -2407,7 +2435,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     // (3) div(u)=0 (done further below)
 
         if( true ) // 061015: use this again to be consistent with implicit time stepping BC's
-            u.applyBoundaryCondition(V,vectorSymmetry, slipWall,0.,t);   
+            u.applyBoundaryCondition(V,vectorSymmetry, slipWall,0.,t);
         else
         { // use this 981130
             u.applyBoundaryCondition(V,extrapolate,    slipWall,0.,t);
@@ -2426,11 +2454,11 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         if( pdeModel==InsParameters::twoPhaseFlowModel )
         {
             u.applyBoundaryCondition(twoPhaseFlowComponents,neumann,slipWall,0.,t);
-        }    
+        }
     }
-    
+
   // Before we can apply a generalizedDivergence at a corner we need to first get some values
-  // at all ghostpoints  -- therefore we first extrapolate all remaining BC's 
+  // at all ghostpoints  -- therefore we first extrapolate all remaining BC's
 
     if( assignInflowWithVelocityGiven && orderOfAccuracy==2 )
     {
@@ -2451,7 +2479,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                   {
                       if( interfaceType(side,axis,grid)!=Parameters::noInterface )
                       { // This is an interface between domains
-             // for now we only know about interfaces at no-slip walls: 
+             // for now we only know about interfaces at no-slip walls:
                           assert( mg.boundaryCondition(side,axis)==noSlipWall );
     	 // what about BC's applied at t=0 before the boundary data is set ??
     	 // if( parameters.dbase.get<int >("globalStepNumber") < 2 ) continue; // ********************* TEMP *****
@@ -2525,14 +2553,14 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                    	     const bool rectangular= mg.isRectangular() && !twilightZoneFlow;
                    	     realArray & x= mg.center();
         #ifdef USE_PPP
-                   	     realSerialArray xLocal; 
-                   	     if( !rectangular || twilightZoneFlow ) 
+                   	     realSerialArray xLocal;
+                   	     if( !rectangular || twilightZoneFlow )
                      	       getLocalArrayWithGhostBoundaries(x,xLocal);
         #else
                    	     const realSerialArray & xLocal = x;
         #endif
                    	     OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
-                   	     realSerialArray ue(Ib1,Ib2,Ib3), uex(Ib1,Ib2,Ib3), uey(Ib1,Ib2,Ib3); 
+                   	     realSerialArray ue(Ib1,Ib2,Ib3), uex(Ib1,Ib2,Ib3), uey(Ib1,Ib2,Ib3);
                    	     e.gd( ue ,xLocal,mg.numberOfDimensions(),rectangular,0,0,0,0,Ib1,Ib2,Ib3,tc,t);
                    	     e.gd( uex,xLocal,mg.numberOfDimensions(),rectangular,0,1,0,0,Ib1,Ib2,Ib3,tc,t);
                    	     e.gd( uey,xLocal,mg.numberOfDimensions(),rectangular,0,0,1,0,Ib1,Ib2,Ib3,tc,t);
@@ -2567,9 +2595,9 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                	 printF("++++insBC: inflowWithVelocityGiven: (grid,side,axis)=(%i,%i,%i) : "
                     		"  BC for T: %3.2f*T+%3.2f*T.n=%3.2f,  \n"
                     		"  BC: u: %3.2f*u+%3.2f*u.n=%3.2f,  v: %3.2f*v+%3.2f*v.n=%3.2f \n",
-                    		grid,side,axis, 
-                    		mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid), 
-                    		mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid), 
+                    		grid,side,axis,
+                    		mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid),
+                    		mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid),
                     		mixedCoeff(vc,side,axis,grid), mixedNormalCoeff(vc,side,axis,grid), mixedRHS(vc,side,axis,grid)
                  	   );
     //        if( mixedNormalCoeff(tc,side,axis,grid)!=0. ) // coeff of T.n is non-zero
@@ -2579,31 +2607,33 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     // 	   printF("++++insBC: inflowWithVelocityGiven:adiabaticWall: (grid,side,axis)=(%i,%i,%i) : "
     // 		  "Mixed BC for T: %3.2f*T+%3.2f*T.n=%3.2f,  \n"
     //                   "  BC: u: %3.2f*u+%3.2f*u.n=%3.2f=%3.2f,  v: %3.2f*v+%3.2f*v.n=%3.2f \n",
-    // 		  grid,side,axis, 
-    //                   mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid), 
-    //                   mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid), 
+    // 		  grid,side,axis,
+    //                   mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid),
+    //                   mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid),
     //                   mixedCoeff(vc,side,axis,grid), mixedNormalCoeff(vc,side,axis,grid), mixedRHS(vc,side,axis,grid)
     // 	     );
     //        }
-                      if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n 
+                      if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n
                       {
     	 // Dirichlet
                       }
                       else if( bd.hasVariableCoefficientBoundaryCondition(side,axis) )
                       {
-             // -- Variable Coefficient Temperature (const coeff.) BC --- 
+             // -- Variable Coefficient Temperature (const coeff.) BC ---
                	 printF("setTemperatureBC:INFO: grid=%i (side,axis)=(%i,%i) HAS a var coeff. temperature BC!\n",
                     		grid,side,axis);
-             // BC is : a0(x)*T + an(x)*T.n = g 
+             // BC is : a0(x)*T + an(x)*T.n = g
              //  a0 = varCoeff(i1,i2,i3,0)
              //  an = varCoeff(i1,i2,i3,1)
                	 RealArray & varCoeff = bd.getVariableCoefficientBoundaryConditionArray(
                                                                                         BoundaryData::variableCoefficientTemperatureBC,side,axis );
                           bcParams.setVariableCoefficientsArray(&varCoeff);
+                          ADD_SPACIAL_VARYING_COEFF;
                	 u.applyBoundaryCondition(tc,mixed,BCTypes::boundary(side,axis),bcData,pBoundaryData,t,
                                   				  bcParams,grid);
-                          bcParams.setVariableCoefficientsArray(NULL);  // reset 
-                      } 
+                          bcParams.setVariableCoefficientsArray(NULL);  // reset
+                          RESET_SPACIAL_VARYING_COEFF;
+                      }
                       else
                       {
     	 // --- Mixed or Neumann Temperature (const coeff.) BC ---
@@ -2654,7 +2684,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                  	   }
                  	   bcParams.a(0)=a0;
                  	   bcParams.a(1)=a1;
-                 	   bcParams.a(2)=mixedRHS(tc,side,axis,grid); 
+                 	   bcParams.a(2)=mixedRHS(tc,side,axis,grid);
                  	   if( false )
                  	   {  // **** TEMP FIX ****
                    	     u.applyBoundaryCondition(tc,extrapolate,BCTypes::boundary(side,axis),0.,t);
@@ -2685,8 +2715,8 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
        // u.updateGhostBoundaries(); // this is done in finish boundary conditions now
           } // end if assignTemperature
     }
-    
-  // *wdh* 090804: 
+
+  // *wdh* 090804:
     if( assignInflowWithPressureAndTangentialVelocityGiven )
     {
         u.applyBoundaryCondition(Rt,extrapolate,inflowWithPressureAndTangentialVelocityGiven,0.,t);
@@ -2701,7 +2731,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                   {
                       if( interfaceType(side,axis,grid)!=Parameters::noInterface )
                       { // This is an interface between domains
-             // for now we only know about interfaces at no-slip walls: 
+             // for now we only know about interfaces at no-slip walls:
                           assert( mg.boundaryCondition(side,axis)==noSlipWall );
     	 // what about BC's applied at t=0 before the boundary data is set ??
     	 // if( parameters.dbase.get<int >("globalStepNumber") < 2 ) continue; // ********************* TEMP *****
@@ -2775,14 +2805,14 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                    	     const bool rectangular= mg.isRectangular() && !twilightZoneFlow;
                    	     realArray & x= mg.center();
         #ifdef USE_PPP
-                   	     realSerialArray xLocal; 
-                   	     if( !rectangular || twilightZoneFlow ) 
+                   	     realSerialArray xLocal;
+                   	     if( !rectangular || twilightZoneFlow )
                      	       getLocalArrayWithGhostBoundaries(x,xLocal);
         #else
                    	     const realSerialArray & xLocal = x;
         #endif
                    	     OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
-                   	     realSerialArray ue(Ib1,Ib2,Ib3), uex(Ib1,Ib2,Ib3), uey(Ib1,Ib2,Ib3); 
+                   	     realSerialArray ue(Ib1,Ib2,Ib3), uex(Ib1,Ib2,Ib3), uey(Ib1,Ib2,Ib3);
                    	     e.gd( ue ,xLocal,mg.numberOfDimensions(),rectangular,0,0,0,0,Ib1,Ib2,Ib3,tc,t);
                    	     e.gd( uex,xLocal,mg.numberOfDimensions(),rectangular,0,1,0,0,Ib1,Ib2,Ib3,tc,t);
                    	     e.gd( uey,xLocal,mg.numberOfDimensions(),rectangular,0,0,1,0,Ib1,Ib2,Ib3,tc,t);
@@ -2817,9 +2847,9 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                	 printF("++++insBC: inflowWithPressureAndTangentialVelocityGiven: (grid,side,axis)=(%i,%i,%i) : "
                     		"  BC for T: %3.2f*T+%3.2f*T.n=%3.2f,  \n"
                     		"  BC: u: %3.2f*u+%3.2f*u.n=%3.2f,  v: %3.2f*v+%3.2f*v.n=%3.2f \n",
-                    		grid,side,axis, 
-                    		mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid), 
-                    		mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid), 
+                    		grid,side,axis,
+                    		mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid),
+                    		mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid),
                     		mixedCoeff(vc,side,axis,grid), mixedNormalCoeff(vc,side,axis,grid), mixedRHS(vc,side,axis,grid)
                  	   );
     //        if( mixedNormalCoeff(tc,side,axis,grid)!=0. ) // coeff of T.n is non-zero
@@ -2829,31 +2859,33 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     // 	   printF("++++insBC: inflowWithPressureAndTangentialVelocityGiven:adiabaticWall: (grid,side,axis)=(%i,%i,%i) : "
     // 		  "Mixed BC for T: %3.2f*T+%3.2f*T.n=%3.2f,  \n"
     //                   "  BC: u: %3.2f*u+%3.2f*u.n=%3.2f=%3.2f,  v: %3.2f*v+%3.2f*v.n=%3.2f \n",
-    // 		  grid,side,axis, 
-    //                   mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid), 
-    //                   mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid), 
+    // 		  grid,side,axis,
+    //                   mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid),
+    //                   mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid),
     //                   mixedCoeff(vc,side,axis,grid), mixedNormalCoeff(vc,side,axis,grid), mixedRHS(vc,side,axis,grid)
     // 	     );
     //        }
-                      if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n 
+                      if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n
                       {
     	 // Dirichlet
                       }
                       else if( bd.hasVariableCoefficientBoundaryCondition(side,axis) )
                       {
-             // -- Variable Coefficient Temperature (const coeff.) BC --- 
+             // -- Variable Coefficient Temperature (const coeff.) BC ---
                	 printF("setTemperatureBC:INFO: grid=%i (side,axis)=(%i,%i) HAS a var coeff. temperature BC!\n",
                     		grid,side,axis);
-             // BC is : a0(x)*T + an(x)*T.n = g 
+             // BC is : a0(x)*T + an(x)*T.n = g
              //  a0 = varCoeff(i1,i2,i3,0)
              //  an = varCoeff(i1,i2,i3,1)
                	 RealArray & varCoeff = bd.getVariableCoefficientBoundaryConditionArray(
                                                                                         BoundaryData::variableCoefficientTemperatureBC,side,axis );
                           bcParams.setVariableCoefficientsArray(&varCoeff);
+                          ADD_SPACIAL_VARYING_COEFF;
                	 u.applyBoundaryCondition(tc,mixed,BCTypes::boundary(side,axis),bcData,pBoundaryData,t,
                                   				  bcParams,grid);
-                          bcParams.setVariableCoefficientsArray(NULL);  // reset 
-                      } 
+                          bcParams.setVariableCoefficientsArray(NULL);  // reset
+                          RESET_SPACIAL_VARYING_COEFF;
+                      }
                       else
                       {
     	 // --- Mixed or Neumann Temperature (const coeff.) BC ---
@@ -2904,7 +2936,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                  	   }
                  	   bcParams.a(0)=a0;
                  	   bcParams.a(1)=a1;
-                 	   bcParams.a(2)=mixedRHS(tc,side,axis,grid); 
+                 	   bcParams.a(2)=mixedRHS(tc,side,axis,grid);
                  	   if( false )
                  	   {  // **** TEMP FIX ****
                    	     u.applyBoundaryCondition(tc,extrapolate,BCTypes::boundary(side,axis),0.,t);
@@ -2935,14 +2967,14 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
        // u.updateGhostBoundaries(); // this is done in finish boundary conditions now
           } // end if assignTemperature
     }
-    
+
     if( assignNoSlipWall && orderOfAccuracy==2 )
     {
-    // noSlipWall stage (2) : 
+    // noSlipWall stage (2) :
 
     // (1) set (u,v,w)=
     // (2) extrapolate (u,v,w,p)
-    //     Assign T: a0*T + a1*T_n  g 
+    //     Assign T: a0*T + a1*T_n  g
     // (3) set div(u)=0. (done further below)
 
         u.applyBoundaryCondition(Rt,extrapolate,noSlipWall,0.,t);
@@ -2950,7 +2982,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     // *** TEST***
         if( FALSE && useAddedMassAlgorithm )
             u.applyBoundaryCondition(V,neumann,noSlipWall,0.,t);
-        
+
 
     // extrapParams.dbase.get< >("orderOfExtrapolation")=4; // *****  why??
     // u.applyBoundaryCondition(V,extrapolate,noSlipWall,0.,t,extrapParams);
@@ -2967,7 +2999,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                   {
                       if( interfaceType(side,axis,grid)!=Parameters::noInterface )
                       { // This is an interface between domains
-             // for now we only know about interfaces at no-slip walls: 
+             // for now we only know about interfaces at no-slip walls:
                           assert( mg.boundaryCondition(side,axis)==noSlipWall );
     	 // what about BC's applied at t=0 before the boundary data is set ??
     	 // if( parameters.dbase.get<int >("globalStepNumber") < 2 ) continue; // ********************* TEMP *****
@@ -3041,14 +3073,14 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                    	     const bool rectangular= mg.isRectangular() && !twilightZoneFlow;
                    	     realArray & x= mg.center();
         #ifdef USE_PPP
-                   	     realSerialArray xLocal; 
-                   	     if( !rectangular || twilightZoneFlow ) 
+                   	     realSerialArray xLocal;
+                   	     if( !rectangular || twilightZoneFlow )
                      	       getLocalArrayWithGhostBoundaries(x,xLocal);
         #else
                    	     const realSerialArray & xLocal = x;
         #endif
                    	     OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
-                   	     realSerialArray ue(Ib1,Ib2,Ib3), uex(Ib1,Ib2,Ib3), uey(Ib1,Ib2,Ib3); 
+                   	     realSerialArray ue(Ib1,Ib2,Ib3), uex(Ib1,Ib2,Ib3), uey(Ib1,Ib2,Ib3);
                    	     e.gd( ue ,xLocal,mg.numberOfDimensions(),rectangular,0,0,0,0,Ib1,Ib2,Ib3,tc,t);
                    	     e.gd( uex,xLocal,mg.numberOfDimensions(),rectangular,0,1,0,0,Ib1,Ib2,Ib3,tc,t);
                    	     e.gd( uey,xLocal,mg.numberOfDimensions(),rectangular,0,0,1,0,Ib1,Ib2,Ib3,tc,t);
@@ -3083,9 +3115,9 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                	 printF("++++insBC: noSlipWall: (grid,side,axis)=(%i,%i,%i) : "
                     		"  BC for T: %3.2f*T+%3.2f*T.n=%3.2f,  \n"
                     		"  BC: u: %3.2f*u+%3.2f*u.n=%3.2f,  v: %3.2f*v+%3.2f*v.n=%3.2f \n",
-                    		grid,side,axis, 
-                    		mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid), 
-                    		mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid), 
+                    		grid,side,axis,
+                    		mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid),
+                    		mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid),
                     		mixedCoeff(vc,side,axis,grid), mixedNormalCoeff(vc,side,axis,grid), mixedRHS(vc,side,axis,grid)
                  	   );
     //        if( mixedNormalCoeff(tc,side,axis,grid)!=0. ) // coeff of T.n is non-zero
@@ -3095,31 +3127,33 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     // 	   printF("++++insBC: noSlipWall:adiabaticWall: (grid,side,axis)=(%i,%i,%i) : "
     // 		  "Mixed BC for T: %3.2f*T+%3.2f*T.n=%3.2f,  \n"
     //                   "  BC: u: %3.2f*u+%3.2f*u.n=%3.2f=%3.2f,  v: %3.2f*v+%3.2f*v.n=%3.2f \n",
-    // 		  grid,side,axis, 
-    //                   mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid), 
-    //                   mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid), 
+    // 		  grid,side,axis,
+    //                   mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid),
+    //                   mixedCoeff(uc,side,axis,grid), mixedNormalCoeff(uc,side,axis,grid), mixedRHS(uc,side,axis,grid),
     //                   mixedCoeff(vc,side,axis,grid), mixedNormalCoeff(vc,side,axis,grid), mixedRHS(vc,side,axis,grid)
     // 	     );
     //        }
-                      if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n 
+                      if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n
                       {
     	 // Dirichlet
                       }
                       else if( bd.hasVariableCoefficientBoundaryCondition(side,axis) )
                       {
-             // -- Variable Coefficient Temperature (const coeff.) BC --- 
+             // -- Variable Coefficient Temperature (const coeff.) BC ---
                	 printF("setTemperatureBC:INFO: grid=%i (side,axis)=(%i,%i) HAS a var coeff. temperature BC!\n",
                     		grid,side,axis);
-             // BC is : a0(x)*T + an(x)*T.n = g 
+             // BC is : a0(x)*T + an(x)*T.n = g
              //  a0 = varCoeff(i1,i2,i3,0)
              //  an = varCoeff(i1,i2,i3,1)
                	 RealArray & varCoeff = bd.getVariableCoefficientBoundaryConditionArray(
                                                                                         BoundaryData::variableCoefficientTemperatureBC,side,axis );
                           bcParams.setVariableCoefficientsArray(&varCoeff);
+                          ADD_SPACIAL_VARYING_COEFF;
                	 u.applyBoundaryCondition(tc,mixed,BCTypes::boundary(side,axis),bcData,pBoundaryData,t,
                                   				  bcParams,grid);
-                          bcParams.setVariableCoefficientsArray(NULL);  // reset 
-                      } 
+                          bcParams.setVariableCoefficientsArray(NULL);  // reset
+                          RESET_SPACIAL_VARYING_COEFF;
+                      }
                       else
                       {
     	 // --- Mixed or Neumann Temperature (const coeff.) BC ---
@@ -3170,7 +3204,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                  	   }
                  	   bcParams.a(0)=a0;
                  	   bcParams.a(1)=a1;
-                 	   bcParams.a(2)=mixedRHS(tc,side,axis,grid); 
+                 	   bcParams.a(2)=mixedRHS(tc,side,axis,grid);
                  	   if( false )
                  	   {  // **** TEMP FIX ****
                    	     u.applyBoundaryCondition(tc,extrapolate,BCTypes::boundary(side,axis),0.,t);
@@ -3217,7 +3251,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         extrapParams.orderOfExtrapolation=4; // **** test this ****
 
         u.applyBoundaryCondition(vc,extrapolate,axisymmetric,0.,t,extrapParams);
-    
+
         if( assignTemperature )
         {
             u.applyBoundaryCondition(tc,neumann,axisymmetric,0.,t);
@@ -3225,13 +3259,13 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         if( pdeModel==InsParameters::twoPhaseFlowModel )
         {
             u.applyBoundaryCondition(twoPhaseFlowComponents,neumann,axisymmetric,0.,t);
-        }    
+        }
 
     }
     if( assignSymmetry )
     {
     // symmetry BC:
-        u.applyBoundaryCondition(V,vectorSymmetry,symmetry,0.,t);   
+        u.applyBoundaryCondition(V,vectorSymmetry,symmetry,0.,t);
         if( assignTemperature )
         {
             u.applyBoundaryCondition(tc,BCTypes::evenSymmetry,symmetry,0.,t);
@@ -3239,15 +3273,15 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         if( pdeModel==InsParameters::twoPhaseFlowModel )
         {
             u.applyBoundaryCondition(twoPhaseFlowComponents,BCTypes::evenSymmetry,symmetry,0.,t);
-        }    
+        }
     }
 
-    
+
   // *wdh* 000929 : also need to update periodic boundaries here
     u.periodicUpdate();
 
 
-    checkArrayIDs(" insBC: before generalizedDivergence"); 
+    checkArrayIDs(" insBC: before generalizedDivergence");
 
     if( orderOfAccuracy==2 )
     {
@@ -3257,13 +3291,13 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
       //  are assigned in a certain order and some symmetry will be lost.
             u.applyBoundaryCondition(V,generalizedDivergence,inflowWithVelocityGiven,0.,t);
         }
-    
+
     // newTractionBC already does div(v)=0
         if( assignFreeSurfaceBoundaryCondition && !useNewTractionBC )
         { // *wdh* 2014/12/24
             u.applyBoundaryCondition(V,generalizedDivergence,freeSurfaceBoundaryCondition,0.,t);
         }
-        
+
 
         if( !parameters.isAxisymmetric() )
         {
@@ -3289,25 +3323,25 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
             }
         }
     }
-    
+
   // display(u,sPrintF(buff,"u after generalized divergence insBC grid=%i",grid),parameters.dbase.get<FILE* >("debugFile"));
 
     if( (true || numberOfDimensions!=3)  &&   // **** for now turn this off in 3D -- problesm outside interp pts*******
-            applyDivergenceBoundaryCondition && assignSlipWall && orderOfAccuracy==2 ) 
+            applyDivergenceBoundaryCondition && assignSlipWall && orderOfAccuracy==2 )
     {
-    // on a slip wall we need to extrapolate points that lie outside 
+    // on a slip wall we need to extrapolate points that lie outside
     // interpolation pts on the bndry. (*wdh* 061015)
         u.applyBoundaryCondition(V,BCTypes::normalDerivativeOfTangentialComponent0, slipWall,0.,t);
         if( numberOfDimensions==3 )
             u.applyBoundaryCondition(V,BCTypes::normalDerivativeOfTangentialComponent1, slipWall,0.,t);
-        
-        u.applyBoundaryCondition(V,generalizedDivergence,slipWall,0.,t); 
+
+        u.applyBoundaryCondition(V,generalizedDivergence,slipWall,0.,t);
     }
-    
+
     if( assignInflowWithPressureAndTangentialVelocityGiven && orderOfAccuracy==2 )
     {
     //  inflowWithPressureAndTangentialVelocityGiven
-    //     give tangential velocity = 0 
+    //     give tangential velocity = 0
     //     extrapolate (u,v,w)
     //     set div(u)=0
         if( false ) // *wdh* this is done above now 2012/09/14
@@ -3322,16 +3356,16 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
             {
       	u.applyBoundaryCondition(twoPhaseFlowComponents,dirichlet,inflowWithPressureAndTangentialVelocityGiven,bcData,
                          				 pBoundaryData,t,bcParams,grid);
-            }    
+            }
 
             u.applyBoundaryCondition(Rt,extrapolate,inflowWithPressureAndTangentialVelocityGiven,0.,t);
         }
-        
+
         u.applyBoundaryCondition(V,generalizedDivergence,inflowWithPressureAndTangentialVelocityGiven,0.,t);
     }
-    
+
   // **** if we do this we probably don't have to check for inflow points at outflow.
-  // *** turn off for stretched c-grid  
+  // *** turn off for stretched c-grid
   // 090221 -- SS solver can work better with div bc at outflow
   // if( applyDivergenceBoundaryCondition && orderOfAccuracy==2 )
     if( applyDivergenceBoundaryConditionAtOutflow && orderOfAccuracy==2 )
@@ -3339,11 +3373,11 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         if( assignOutflow )
         {
       // 080909 -- turn this off for now : this BC can result in a boundary layer in div(u) at outflow
-      //           which may actually increase div(u) overall (solid-fuel rods example). 
+      //           which may actually increase div(u) overall (solid-fuel rods example).
       // 100607 -- do not apply div(u)=0 if we expect inflow at outflow (c.f. surfaceFlow.cmd example)
-      // 
+      //
             if( parameters.dbase.get<int>("outflowOption")==0 && !parameters.isAxisymmetric() &&
-                    parameters.dbase.get<int >("checkForInflowAtOutFlow")!=2 ) // *wdh* 100607 
+                    parameters.dbase.get<int >("checkForInflowAtOutFlow")!=2 ) // *wdh* 100607
             {
         // printF("insBC: apply generalizedDivergence BC at outflow\n");
       	u.applyBoundaryCondition(V,generalizedDivergence,outflow,0.,t); // ****wdh***** 990827
@@ -3364,10 +3398,10 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 
     // newTractionBC already does div(v)=0
         if( assignTractionFree && !useNewTractionBC )
-            u.applyBoundaryCondition(V,generalizedDivergence,tractionFree,0.,t); 
+            u.applyBoundaryCondition(V,generalizedDivergence,tractionFree,0.,t);
     }
-    
-    checkArrayIDs(" insBC: after generalizedDivergence"); 
+
+    checkArrayIDs(" insBC: after generalizedDivergence");
 
 
   // Boundary conditions for the passive scalar.
@@ -3397,20 +3431,20 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 
 
   // extrapolate the neighbours of interpolation points -- these values are used
-  // by the fourth-order artificial viscosity 
+  // by the fourth-order artificial viscosity
 
     if( orderOfAccuracy==2 )
     {
         const int discretizationWidth = mg.discretizationWidth(0);
     // if( discretizationWidth!=3 ) printf(" INSBC: discretizationWidth=%i\n",discretizationWidth);
-        
+
         if(  discretizationWidth<5 &&
                   parameters.dbase.get<bool >("useFourthOrderArtificialDiffusion") && (parameters.dbase.get<real >("ad41")!=0. || parameters.dbase.get<real >("ad42")!=0.)  )
         { // double check
             assert( numberOfGhostPointsNeeded>=2 );
         }
-        
-        if( discretizationWidth<5 && 
+
+        if( discretizationWidth<5 &&
                 numberOfGhostPointsNeeded>=2 )
         {
             extrapParams.ghostLineToAssign=2;
@@ -3421,12 +3455,12 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                 extrapParams.orderOfExtrapolation=3; // orderOfAccuracy; // 3;
             else
                 extrapParams.orderOfExtrapolation=3;
-            
+
             assert( parameters.dbase.get<int >("extrapolateInterpolationNeighbours") );  // consistency check
-            extrapParams.orderOfExtrapolation=orderOfAccuracy; // *wdh* 100611 
+            extrapParams.orderOfExtrapolation=orderOfAccuracy; // *wdh* 100611
             u.applyBoundaryCondition(Rt,BCTypes::extrapolateInterpolationNeighbours,allBoundaries,0.,t,extrapParams);
         }
-        else if( timeSteppingMethod==Parameters::rKutta /*|| 
+        else if( timeSteppingMethod==Parameters::rKutta /*||
                                           						      parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")==Parameters::approximateFactorization */)
         {
       // semi-implicit method needs du/dt at interpolation points.
@@ -3437,67 +3471,67 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         {
             assert( !parameters.dbase.get<int >("extrapolateInterpolationNeighbours") );  // consistency check
         }
-        
+
     }
-    
+
     if( orderOfAccuracy==4 )
     {
     // apply BC's for fourth-order accuracy
 
-        if( false &&   // *wdh* 110313 - this is done in applyFourthOrderBoundaryConditions now 
+        if( false &&   // *wdh* 110313 - this is done in applyFourthOrderBoundaryConditions now
                 assignTemperature )
         {
       // Order 4: Extrapolate the Temperature on the second ghost line on ALL boundaries
             extrapParams.ghostLineToAssign=2;
             extrapParams.orderOfExtrapolation=orderOfAccuracy+1; // 3;
             u.applyBoundaryCondition(tc,extrapolate,allBoundaries,0.,t,extrapParams);
-            extrapParams.ghostLineToAssign=1;  // reset 
+            extrapParams.ghostLineToAssign=1;  // reset
         }
-        
+
         if( assignSlipWall )
         {
       // On a slip wall use vector symmetry on both ghost lines
             bcParams.ghostLineToAssign=1;
-            u.applyBoundaryCondition(V,vectorSymmetry, slipWall,0.,t);   
-            if( false &&   // *wdh* 110313 - this is done in applyFourthOrderBoundaryConditions now 
+            u.applyBoundaryCondition(V,vectorSymmetry, slipWall,0.,t);
+            if( false &&   // *wdh* 110313 - this is done in applyFourthOrderBoundaryConditions now
                     assignTemperature )
-      	u.applyBoundaryCondition(tc,BCTypes::evenSymmetry, slipWall,0.,t); 
+      	u.applyBoundaryCondition(tc,BCTypes::evenSymmetry, slipWall,0.,t);
 
             bcParams.ghostLineToAssign=2;
-            u.applyBoundaryCondition(V,vectorSymmetry, slipWall,0.,t,bcParams);   
+            u.applyBoundaryCondition(V,vectorSymmetry, slipWall,0.,t,bcParams);
             bcParams.ghostLineToAssign=1;
-            if( false &&   // *wdh* 110313 - this is done in applyFourthOrderBoundaryConditions now 
+            if( false &&   // *wdh* 110313 - this is done in applyFourthOrderBoundaryConditions now
                     assignTemperature )
       	u.applyBoundaryCondition(tc,BCTypes::evenSymmetry,slipWall,0.,t,bcParams);
         }
-            
+
         if( assignInflowWithPressureAndTangentialVelocityGiven )
         {
       // --- do this for now : first implementation ----
-      // we should set div(u)=0 
+      // we should set div(u)=0
 
             if( true )
             {
-        // Even Symmetry on n.u :  
+        // Even Symmetry on n.u :
       	u.applyBoundaryCondition(Rt,BCTypes::evenSymmetry,inflowWithPressureAndTangentialVelocityGiven,0.,t);
             }
             else
             {
 	// extrapolate 1nd ghost
       	extrapParams.ghostLineToAssign=1;
-      	extrapParams.orderOfExtrapolation=orderOfAccuracy+1; 
+      	extrapParams.orderOfExtrapolation=orderOfAccuracy+1;
       	u.applyBoundaryCondition(Rt,extrapolate,inflowWithPressureAndTangentialVelocityGiven,0.,t,extrapParams);
             }
-            
+
       // set tangential components to exact on 1st ghost
             bcParams.lineToAssign=1;
             bcParams.extraInTangentialDirections=2;
             u.applyBoundaryCondition(V,tangentialComponent,inflowWithPressureAndTangentialVelocityGiven,0.,t,bcParams);
-            
+
       // extrapolate 2nd ghost
             if( true )
             {
-        // Even Symmetry on n.u :  
+        // Even Symmetry on n.u :
       	bcParams.lineToAssign=2;
       	bcParams.ghostLineToAssign=2;
       	u.applyBoundaryCondition(Rt,BCTypes::evenSymmetry,inflowWithPressureAndTangentialVelocityGiven,0.,t,bcParams);
@@ -3505,32 +3539,32 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
             else
             {
       	extrapParams.ghostLineToAssign=2;
-      	extrapParams.orderOfExtrapolation=orderOfAccuracy+1; 
+      	extrapParams.orderOfExtrapolation=orderOfAccuracy+1;
       	u.applyBoundaryCondition(Rt,extrapolate,inflowWithPressureAndTangentialVelocityGiven,0.,t,extrapParams);
             }
-            
+
       // do this for now -- set tangential components to exact on 2nd ghost
             bcParams.lineToAssign=2;
             u.applyBoundaryCondition(V,tangentialComponent,inflowWithPressureAndTangentialVelocityGiven,0.,t,bcParams);
-            bcParams.lineToAssign=0;  // reset 
+            bcParams.lineToAssign=0;  // reset
             bcParams.extraInTangentialDirections=0;
-            
+
             if( debug() & 8 )
       	::display(u,"u after inflowWithPressureAndTangentialVelocityGiven",parameters.dbase.get<FILE* >("debugFile"));
 
         }
-        
+
     // This next call also assigns T for Boussinesq *wdh* 110313
         applyFourthOrderBoundaryConditions( u,t,grid,gridVelocity ); // *new* calling sequence 111124
 
 
-        if( true // *wdh* 2012/07/24 -- turn this off : MAKE THIS AN OPTION 
+        if( true // *wdh* 2012/07/24 -- turn this off : MAKE THIS AN OPTION
                 && assignInflowWithVelocityGiven && !twilightZoneFlow )
         {
       // --- At inflow with fourth-order : set ghost values equal to the boundary values ---
       //  (There can otherwise be trouble at inflow, cf. surfaceFlow.cmd)
             OV_GET_SERIAL_ARRAY(real,u,uLocal);
-        	  
+
             Index Ibv[3], &Ib1=Ibv[0], &Ib2=Ibv[1], &Ib3=Ibv[2];
             Index Igv[3], &Ig1=Igv[0], &Ig2=Igv[1], &Ig3=Igv[2];
             Index Ipv[3], &Ip1=Ipv[0], &Ip2=Ipv[1], &Ip3=Ipv[2];
@@ -3540,16 +3574,16 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
       	{
         	  if( mg.boundaryCondition(side,axis)==inflowWithVelocityGiven )
         	  {
-	    // assign 2 ghost : 
+	    // assign 2 ghost :
           	    const int numGhost=2;
           	    const int extra=numGhost; // extra values in the tangential direction
 	    // const int extra=0; // extra values in the tangential direction
-          	    getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3,extra);  
+          	    getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3,extra);
           	    bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,1);
           	    for( int ghost=1; ghost<=numGhost; ghost++ )
           	    {
-            	      getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3, ghost,extra);  
-            	      getGhostIndex(mg.gridIndexRange(),side,axis,Ip1,Ip2,Ip3,-ghost,extra);  
+            	      getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3, ghost,extra);
+            	      getGhostIndex(mg.gridIndexRange(),side,axis,Ip1,Ip2,Ip3,-ghost,extra);
             	      ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,1);
             	      ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ip1,Ip2,Ip3,1);
             	      if( ok )
@@ -3557,9 +3591,9 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 		// uLocal(Ig1,Ig2,Ig3,V)=uLocal(Ib1,Ib2,Ib3,V);
             		uLocal(Ig1,Ig2,Ig3,V)=2.*uLocal(Ib1,Ib2,Ib3,V)-uLocal(Ip1,Ip2,Ip3,V); // *wdh* 2014/06/02
             	      }
-            	      
+
           	    }
-            	      
+
         	  }
       	}
             }
@@ -3572,25 +3606,25 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
       // On a slip wall use vector symmetry on both ghost lines
             bcParams.ghostLineToAssign=1;
             bcParams.extraInTangentialDirections=2; // include 2 ghost points
-            u.applyBoundaryCondition(V,vectorSymmetry, slipWall,0.,t,bcParams);   
-            if( false &&   // *wdh* 110313 - this is done in applyFourthOrderBoundaryConditions now 
+            u.applyBoundaryCondition(V,vectorSymmetry, slipWall,0.,t,bcParams);
+            if( false &&   // *wdh* 110313 - this is done in applyFourthOrderBoundaryConditions now
                     assignTemperature )
-      	u.applyBoundaryCondition(tc,BCTypes::evenSymmetry, slipWall,0.,t,bcParams); 
+      	u.applyBoundaryCondition(tc,BCTypes::evenSymmetry, slipWall,0.,t,bcParams);
 
             bcParams.ghostLineToAssign=2;
-            u.applyBoundaryCondition(V,vectorSymmetry, slipWall,0.,t,bcParams);   
-            if( false &&   // *wdh* 110313 - this is done in applyFourthOrderBoundaryConditions now 
+            u.applyBoundaryCondition(V,vectorSymmetry, slipWall,0.,t,bcParams);
+            if( false &&   // *wdh* 110313 - this is done in applyFourthOrderBoundaryConditions now
                     assignTemperature )
-      	u.applyBoundaryCondition(tc,BCTypes::evenSymmetry, slipWall,0.,t,bcParams); 
+      	u.applyBoundaryCondition(tc,BCTypes::evenSymmetry, slipWall,0.,t,bcParams);
             bcParams.ghostLineToAssign=1;
             bcParams.extraInTangentialDirections=0; // reset
         }
 
-        
+
         if( true && twilightZoneFlow && assignDirichletBoundaryCondition )
-        { 
+        {
       // ** 110314 - make sure corners are set near dirichlet BC's
-      //           - also set ghost points outside interp pts 
+      //           - also set ghost points outside interp pts
       // We could fix applyFourthOrderBoundaryConditions to do this!
 
             BoundaryConditionParameters extrapParams;
@@ -3602,14 +3636,14 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
             {
       	extrapParams.ghostLineToAssign = ghostLineToAssign;
       	extrapParams.lineToAssign = ghostLineToAssign;
-      	if( knownSolution!=InsParameters::noKnownSolution ) 
+      	if( knownSolution!=InsParameters::noKnownSolution )
       	{
 	  // apply any known solution at dirichlet BC's   *wdh* 2013/09/28
         	  extrapParams.extraInTangentialDirections=2;
-        	  extrapParams.setBoundaryConditionForcingOption(BoundaryConditionParameters::arrayForcing); 
+        	  extrapParams.setBoundaryConditionForcingOption(BoundaryConditionParameters::arrayForcing);
 
         	  u.applyBoundaryCondition(Rt,dirichlet,dirichletBoundaryCondition,uKnownLocal,t,extrapParams);
-            
+
         	  extrapParams.extraInTangentialDirections=0;
         	  extrapParams.setBoundaryConditionForcingOption(BoundaryConditionParameters::unSpecifiedForcing);
 
@@ -3618,16 +3652,16 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
       	{
         	  u.applyBoundaryCondition(Rt,dirichlet,dirichletBoundaryCondition,0.,t,extrapParams);
       	}
-      	
+
 
             }
         }
-        
-          
 
-    }  // end of fourth order 
-    
-    
+
+
+    }  // end of fourth order
+
+
 
 //   if( turbulenceModel==Parameters::kEpsilon )
 //   {
@@ -3645,12 +3679,12 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
   // update corners and periodic edges
   // *** not here  u.finishBoundaryConditions();
 
-    checkArrayIDs(" insBC: end"); 
+    checkArrayIDs(" insBC: end");
 
 
     if( orderOfAccuracy==2 ) // ** moved from generic applyBC - 060907
     {
-        
+
         if( turbulenceModel==Parameters::noTurbulenceModel )
         {
             u.finishBoundaryConditions();
@@ -3660,7 +3694,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
             extrapParams.orderOfExtrapolation=1;  // low order extrapolation to keep k and eps positive
             u.finishBoundaryConditions(extrapParams);
         }
-        
+
     }
 
   // 111205 add calls to bcModifier functions to adjust boundary conditions
@@ -3671,7 +3705,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
       	if (bcInfo(2,side,axis,grid))
         	  {
           	    Parameters::BCModifier *bcMod = parameters.bcModifiers[bcInfo(2,side,axis,grid)];
-          	    bcMod->applyBC(parameters, 
+          	    bcMod->applyBC(parameters,
                      			   t, dt,
                      			   u,
                      			   grid,
@@ -3684,7 +3718,3 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForBoundaryConditions"))+=getCPU()-time0;
     return 0;
 }
-
-
-
-
